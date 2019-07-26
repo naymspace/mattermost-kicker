@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -67,12 +69,33 @@ func (p *KickerPlugin) OnActivate() error {
 
 	p.botUserID = botUserID
 
+	if err = p.setProfileImage(); err != nil {
+		return appError("failed to set profile image", err)
+	}
+
 	return nil
 }
 
 // OnDeactivate unregisters the command
 func (p *KickerPlugin) OnDeactivate() error {
 	p.enabled = false
+	return nil
+}
+
+// setProfileImage set the profile image of the bot account
+func (p *KickerPlugin) setProfileImage() error {
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		return appError("failed to get bundle path", err)
+	}
+
+	profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "logo.png"))
+	if err != nil {
+		return appError("failed to read profile image", err)
+	}
+	if appErr := p.API.SetProfileImage(p.botUserID, profileImage); appErr != nil {
+		return appError("failed to set profile image", appErr)
+	}
 	return nil
 }
 
@@ -94,10 +117,11 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 // executeCommand returns a sample text
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	text := "Großer Kicker, erhöre mein flehen. Hilf uns, das nächste Kicker-Spiel zu organisieren!"
-
+	botText := "Nö."
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: args.ChannelId,
+		Message:   botText,
 		RootId:    args.RootId,
 		Type:      model.POST_DEFAULT,
 	}
