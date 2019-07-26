@@ -1,2 +1,2 @@
-export const id = 'com.mattermost.plugin-starter-template';
+export const id = 'com.naymspace.mattermost-kicker';
 export const version = '0.1.0';
