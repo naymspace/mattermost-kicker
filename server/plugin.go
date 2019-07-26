@@ -139,19 +139,9 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		Type:      model.POST_DEFAULT,
 	}
 
-	postDebug := &model.Post{
-		UserId:    p.botUserID,
-		ChannelId: args.ChannelId,
-		Message:   time.Now().In(loc).String(),
-		RootId:    args.RootId,
-		Type:      model.POST_DEFAULT,
-	}
-
 	createStartMessage := func() {
 		p.API.CreatePost(post)
 	}
-
-	p.API.CreatePost(postDebug)
 
 	time.AfterFunc(duration, createStartMessage)
 
