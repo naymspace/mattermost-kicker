@@ -48,10 +48,10 @@ func (p *KickerPlugin) OnActivate() error {
 	err := p.API.RegisterCommand(&model.Command{
 		Trigger:          trigger,
 		Description:      "TODO: describe me",
-		DisplayName:      "TODO: Name me",
+		DisplayName:      "Kicker BOT",
 		AutoComplete:     true,
-		AutoCompleteDesc: "TODO: AutoCompleteDesc",
-		AutoCompleteHint: "TODO: AutoCompleteDesc",
+		AutoCompleteDesc: "Startet den Kicker BOT, e.g. /kicker 12 30",
+		AutoCompleteHint: "[hour] [minute]",
 	})
 	if err != nil {
 		return err
