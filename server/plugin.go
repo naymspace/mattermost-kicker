@@ -116,7 +116,7 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand returns a sample text
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	text := "Großer Kicker, erhöre mein flehen. Hilf uns, das nächste Kicker-Spiel zu organisieren!"
+	text := "Großer Kicker, erhöre mein flehen. Sag uns, wer soll zum Kickertisch gehen!"
 	botText := "Nö."
 	post := &model.Post{
 		UserId:    p.botUserID,
