@@ -5,13 +5,16 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 )
 
 const (
-	trigger = "kicker"
+	trigger        = "kicker"
+	botUserName    = "kicker"
+	botDisplayName = "Kicker"
 )
 
 // KickerPlugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -51,6 +54,19 @@ func (p *KickerPlugin) OnActivate() error {
 		return err
 	}
 
+	// Init bot
+	bot := &model.Bot{
+		Username:    botUserName,
+		DisplayName: botDisplayName,
+	}
+
+	botUserID, appErr := p.Helpers.EnsureBot(bot)
+	if appErr != nil {
+		return appError("Failed to ensure bot user", nil)
+	}
+
+	p.botUserID = botUserID
+
 	return nil
 }
 
@@ -69,15 +85,30 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 		return nil, appError("Cannot access the plugin API.", nil)
 	}
 	if strings.HasPrefix(args.Command, "/"+trigger) {
-		return p.executeCommand(args.Command)
+		return p.executeCommand(args)
 	}
 
 	return nil, appError("Command trigger "+args.Command+"is not supported by this plugin.", nil)
 }
 
 // executeCommand returns a sample text
-func (p *KickerPlugin) executeCommand(command string) (*model.CommandResponse, *model.AppError) {
-	text := "Blorg!"
+func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+	t := time.Now()
+	text := t.Format("20060102150405")
+
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: args.ChannelId,
+		RootId:    args.RootId,
+		Type:      model.POST_DEFAULT,
+	}
+
+	postCreateFunc := func() {
+		p.API.CreatePost(post)
+	}
+
+	time.AfterFunc(3*time.Second, postCreateFunc)
+
 	return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: text}, nil
 }
 
