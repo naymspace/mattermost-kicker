@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +16,7 @@ import (
 
 const (
 	trigger        = "kicker"
-	botUserName    = "kicker"
+	botUserName    = "Kicker"
 	botDisplayName = "Kicker"
 )
 
@@ -116,8 +117,20 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand returns a sample text
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+	p.API.LogInfo(args.Command, nil)
 	text := "Großer Kicker, erhöre mein flehen. Sag uns, wer soll zum Kickertisch gehen!"
+	textNo := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
 	botText := "Nö."
+	parsedArgs := parseArgs(args.Command)
+	// get time to start
+	loc, _ := time.LoadLocation("Europe/Berlin")
+	endTime := getEndTime(parsedArgs...)
+	duration := endTime.Sub(time.Now().In(loc))
+
+	if duration <= 0 {
+		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: textNo}, nil
+	}
+
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: args.ChannelId,
@@ -126,13 +139,68 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		Type:      model.POST_DEFAULT,
 	}
 
-	postCreateFunc := func() {
+	postDebug := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: args.ChannelId,
+		Message:   time.Now().In(loc).String(),
+		RootId:    args.RootId,
+		Type:      model.POST_DEFAULT,
+	}
+
+	createStartMessage := func() {
 		p.API.CreatePost(post)
 	}
 
-	time.AfterFunc(3*time.Second, postCreateFunc)
+	p.API.CreatePost(postDebug)
+
+	time.AfterFunc(duration, createStartMessage)
 
 	return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: text}, nil
+}
+
+func getEndTime(params ...int) time.Time {
+	// default values
+	hour, minute := 12, 0
+
+	if len(params) == 2 {
+		hour, minute = params[0], params[1]
+	}
+
+	if len(params) == 1 {
+		hour = params[0]
+	}
+	loc, _ := time.LoadLocation("Europe/Berlin")
+
+	n := time.Now()
+	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, loc).Add(time.Hour * time.Duration(hour)).Add(time.Minute * time.Duration(minute))
+}
+
+func parseArgs(args string) []int {
+	str := strings.SplitN(args, " ", 3)
+
+	if len(str) == 3 {
+		i1, err1 := strconv.Atoi(str[1])
+		i2, err2 := strconv.Atoi(str[2])
+		if err1 != nil || err2 != nil {
+			return []int{}
+		}
+		return []int{
+			i1,
+			i2,
+		}
+	}
+
+	if len(str) == 2 {
+		i1, err1 := strconv.Atoi(str[1])
+		if err1 != nil {
+			return []int{}
+		}
+		return []int{
+			i1,
+		}
+	}
+
+	return []int{}
 }
 
 func appError(message string, err error) *model.AppError {
