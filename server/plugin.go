@@ -93,8 +93,7 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand returns a sample text
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	t := time.Now()
-	text := t.Format("20060102150405")
+	text := "Großer Kicker, erhöre mein flehen. Hilf uns, das nächste Kicker-Spiel zu organisieren!"
 
 	post := &model.Post{
 		UserId:    p.botUserID,
