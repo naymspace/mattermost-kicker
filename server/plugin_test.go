@@ -11,7 +11,7 @@ import (
 
 func TestServeHTTP(t *testing.T) {
 	assert := assert.New(t)
-	plugin := Plugin{}
+	plugin := KickerPlugin{}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
