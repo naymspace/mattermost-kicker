@@ -119,18 +119,19 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	p.API.LogInfo(args.Command, nil)
 	text := "Großer Kicker, erhöre mein flehen. Sag uns, wer soll zum Kickertisch gehen!"
-	textNo := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
+	// textNo := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
 	botText := "Nö."
-	parsedArgs := parseArgs(args.Command)
+	// parsedArgs := parseArgs(args.Command)
 	// get time to start
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	endTime := getEndTime(parsedArgs...)
-	duration := endTime.Sub(time.Now().In(loc))
+	/*
+		loc, _ := time.LoadLocation("Europe/Berlin")
+		endTime := getEndTime(parsedArgs...)
+		duration := endTime.Sub(time.Now().In(loc))
 
-	if duration <= 0 {
-		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: textNo}, nil
-	}
-
+		if duration <= 0 {
+			return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: textNo}, nil
+		}
+	*/
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: args.ChannelId,
@@ -138,12 +139,14 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		RootId:    args.RootId,
 		Type:      model.POST_DEFAULT,
 	}
+	model.ParseSlackAttachment(post, buildSlackAttachments())
 
 	createStartMessage := func() {
 		p.API.CreatePost(post)
 	}
+	createStartMessage()
 
-	time.AfterFunc(duration, createStartMessage)
+	// time.AfterFunc(duration, createStartMessage)
 
 	return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: text}, nil
 }
@@ -191,6 +194,41 @@ func parseArgs(args string) []int {
 	}
 
 	return []int{}
+}
+
+func buildSlackAttachments() []*model.SlackAttachment {
+	actions := []*model.PostAction{}
+
+	actions = append(actions, &model.PostAction{
+		Name: "Bin dabei",
+		Type: model.POST_ACTION_TYPE_BUTTON,
+		Integration: &model.PostActionIntegration{
+			URL: fmt.Sprintf("%s/plugins/%s/api/v1/polls/%s/option/add/request", "siteURL", "pluginID", "p.ID"),
+		},
+	})
+
+	actions = append(actions, &model.PostAction{
+		Name: "Wenn sich sonst keiner traut 🤷",
+		Type: model.POST_ACTION_TYPE_BUTTON,
+		Integration: &model.PostActionIntegration{
+			URL: fmt.Sprintf("%s/plugins/%s/api/v1/polls/%s/option/add/request", "siteURL", "pluginID", "p.ID"),
+		},
+	})
+
+	actions = append(actions, &model.PostAction{
+		Name: "Ich weiß dieser Knopf ist sinnlos, aber ich drück ihn trotzdem",
+		Type: model.POST_ACTION_TYPE_BUTTON,
+		Integration: &model.PostActionIntegration{
+			URL: fmt.Sprintf("%s/plugins/%s/api/v1/polls/%s/option/add/request", "siteURL", "pluginID", "p.ID"),
+		},
+	})
+
+	return []*model.SlackAttachment{{
+		AuthorName: "Test",
+		Title:      "TestTitle",
+		Text:       "TestText",
+		Actions:    actions,
+	}}
 }
 
 func appError(message string, err error) *model.AppError {
