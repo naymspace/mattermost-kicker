@@ -16,8 +16,8 @@ import (
 
 const (
 	trigger        = "kicker"
-	botUserName    = "Kicker"
-	botDisplayName = "Kicker"
+	botUserName    = "kicker"
+	botDisplayName = "kicker"
 )
 
 // KickerPlugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -118,14 +118,15 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 // executeCommand returns a sample text
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	p.API.LogInfo(args.Command, nil)
-	text := "Großer Kicker, erhöre mein flehen. Sag uns, wer soll zum Kickertisch gehen!"
+	responseText := "Der Kicker wurde gestartet."
 	// textNo := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
-	botText := "Nö."
-	// parsedArgs := parseArgs(args.Command)
+	// botText := "Nö."
+	parsedArgs := parseArgs(args.Command)
 	// get time to start
+
+	// loc, _ := time.LoadLocation("Europe/Berlin")
+	endTime := getEndTime(parsedArgs...)
 	/*
-		loc, _ := time.LoadLocation("Europe/Berlin")
-		endTime := getEndTime(parsedArgs...)
 		duration := endTime.Sub(time.Now().In(loc))
 
 		if duration <= 0 {
@@ -135,11 +136,11 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: args.ChannelId,
-		Message:   botText,
+		Message:   getStartMessage(endTime),
 		RootId:    args.RootId,
 		Type:      model.POST_DEFAULT,
 	}
-	model.ParseSlackAttachment(post, buildSlackAttachments())
+	model.ParseSlackAttachment(post, buildSlackAttachments(endTime))
 
 	createStartMessage := func() {
 		p.API.CreatePost(post)
@@ -148,7 +149,10 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// time.AfterFunc(duration, createStartMessage)
 
-	return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: text}, nil
+	return &model.CommandResponse{
+		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
+		Text:         responseText,
+	}, nil
 }
 
 func getEndTime(params ...int) time.Time {
@@ -196,7 +200,13 @@ func parseArgs(args string) []int {
 	return []int{}
 }
 
-func buildSlackAttachments() []*model.SlackAttachment {
+func getStartMessage(endTime time.Time) string {
+	// TODO: Needs random selected messages
+	message := "Ich starte um %02d:%02d Uhr, ihr Maden. Also seht zu oder verreckt an Bewegungsmangel."
+	return fmt.Sprintf(message, endTime.Hour(), endTime.Minute())
+}
+
+func buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
@@ -224,9 +234,9 @@ func buildSlackAttachments() []*model.SlackAttachment {
 	})
 
 	return []*model.SlackAttachment{{
-		AuthorName: "Test",
-		Title:      "TestTitle",
-		Text:       "TestText",
+		AuthorName: "kicker `BOT`",
+		Title:      "Der kicker `BOT` hat euch herausgefordert! Wer stellt sich ihm?",
+		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", endTime.Hour(), endTime.Minute()),
 		Actions:    actions,
 	}}
 }
