@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/plugin"
 )
@@ -24,6 +25,7 @@ const (
 type KickerPlugin struct {
 	plugin.MattermostPlugin
 	botUserID string
+	router    *mux.Router
 
 	// configurationLock synchronizes access to the configuration.
 	configurationLock sync.RWMutex
@@ -33,11 +35,13 @@ type KickerPlugin struct {
 	configuration *configuration
 
 	enabled bool
+
+	participants []*model.User
 }
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 func (p *KickerPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, world!")
+	p.router.ServeHTTP(w, r)
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
@@ -74,7 +78,30 @@ func (p *KickerPlugin) OnActivate() error {
 		return appError("failed to set profile image", err)
 	}
 
+	// setup routing
+	p.router = mux.NewRouter()
+	p.router.HandleFunc("/participate", p.ParticipateHandler)
+
 	return nil
+}
+
+// ParticipateHandler handles participation requests. orly?
+func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
+	// vars := mux.Vars(r)
+	w.WriteHeader(http.StatusOK)
+	// fmt.Fprintf(w, "Category: %v\n", vars["category"])
+	p.API.LogDebug("ParticipateHandler called", "user_id", r.Header.Get("Mattermost-User-Id"))
+
+	// out, _ := json.Marshal(r)
+	// p.API.LogDebug("ParticipateHandler called", "r", string(out))
+
+	// get user info from Mattermost API
+	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
+	p.API.LogDebug("ParticipateHandler", "user.Username", user.Username)
+
+	p.participants = append(p.participants, user)
+
+	fmt.Fprintf(w, "{\"response\":\"OKAY\"}\n")
 }
 
 // OnDeactivate unregisters the command
@@ -140,14 +167,31 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		RootId:    args.RootId,
 		Type:      model.POST_DEFAULT,
 	}
-	model.ParseSlackAttachment(post, buildSlackAttachments(endTime))
+	model.ParseSlackAttachment(post, p.buildSlackAttachments(endTime))
 
 	createStartMessage := func() {
 		p.API.CreatePost(post)
 	}
 	createStartMessage()
 
-	// time.AfterFunc(duration, createStartMessage)
+	createLosGehtsMessage := func() {
+		message := "Es nehmen teil: "
+
+		for _, element := range p.participants {
+			message += element.Username + ", "
+		}
+
+		p.API.CreatePost(&model.Post{
+			UserId:    p.botUserID,
+			ChannelId: args.ChannelId,
+			Message:   message,
+			RootId:    args.RootId,
+			Type:      model.POST_DEFAULT,
+		})
+	}
+	time.AfterFunc(time.Second*time.Duration(30), createLosGehtsMessage)
+
+	p.participants = []*model.User{}
 
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
@@ -206,14 +250,15 @@ func getStartMessage(endTime time.Time) string {
 	return fmt.Sprintf(message, endTime.Hour(), endTime.Minute())
 }
 
-func buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
+func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
 		Name: "Bin dabei",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/api/v1/polls/%s/option/add/request", "siteURL", "pluginID", "p.ID"),
+			// TODO: where to get these values?
+			URL: fmt.Sprintf("%s/plugins/%s/participate", "http://localhost:8065", "com.naymspace.mattermost-kicker"),
 		},
 	})
 
