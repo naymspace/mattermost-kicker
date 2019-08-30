@@ -221,7 +221,6 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	createEndPollPost := func() {
 		chosenPlayer := choosePlayer(p.participants)
 		// not enough player
-		// TODO: Improve so we can show which player wanted to participate
 		if len(chosenPlayer) < playerCount {
 			message := "Nicht genug Spieler, es wollen spielen: "
 			for _, player := range chosenPlayer {
