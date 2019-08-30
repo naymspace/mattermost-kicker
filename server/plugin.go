@@ -144,37 +144,28 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand returns a sample text
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	p.API.LogInfo(args.Command, nil)
+	// Log Command:
+	// p.API.LogInfo(args.Command, nil)
 	responseText := "Der Kicker wurde gestartet."
-	// textNo := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
-	// botText := "Nö."
+	sassyResponseText := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
+
+	// parse Args
 	parsedArgs := parseArgs(args.Command)
-	// get time to start
 
-	// loc, _ := time.LoadLocation("Europe/Berlin")
+	// get the wait-duration until poll ends
+	loc, _ := time.LoadLocation("Europe/Berlin")
 	endTime := getEndTime(parsedArgs...)
-	/*
-		duration := endTime.Sub(time.Now().In(loc))
+	duration := endTime.Sub(time.Now().In(loc))
 
-		if duration <= 0 {
-			return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_IN_CHANNEL, Text: textNo}, nil
-		}
-	*/
-	post := &model.Post{
-		UserId:    p.botUserID,
-		ChannelId: args.ChannelId,
-		Message:   getStartMessage(endTime),
-		RootId:    args.RootId,
-		Type:      model.POST_DEFAULT,
+	// If invalid, return sassy response
+	if duration <= 0 {
+		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: sassyResponseText}, nil
 	}
-	model.ParseSlackAttachment(post, p.buildSlackAttachments(endTime))
 
-	createStartMessage := func() {
-		p.API.CreatePost(post)
-	}
-	createStartMessage()
+	p.participants = []*model.User{}
 
-	createLosGehtsMessage := func() {
+	// create Bot-Post for ending the poll
+	createEndPollPost := func() {
 		message := "Es nehmen teil: "
 
 		for _, element := range p.participants {
@@ -189,9 +180,19 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			Type:      model.POST_DEFAULT,
 		})
 	}
-	time.AfterFunc(time.Second*time.Duration(30), createLosGehtsMessage)
+	// Delay execution until endTime is reached
+	time.AfterFunc(duration, createEndPollPost)
 
-	p.participants = []*model.User{}
+	// create Bot-Post for initiating the poll
+	post := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: args.ChannelId,
+		Message:   "",
+		RootId:    args.RootId,
+		Type:      model.POST_DEFAULT,
+	}
+	model.ParseSlackAttachment(post, p.buildSlackAttachments(endTime))
+	p.API.CreatePost(post)
 
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
@@ -216,6 +217,13 @@ func getEndTime(params ...int) time.Time {
 	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, loc).Add(time.Hour * time.Duration(hour)).Add(time.Minute * time.Duration(minute))
 }
 
+/*
+  parses given args
+  Takes the first 3 arguments:
+  - the command "kicker" itself
+  - a given hour
+  - a given minute
+*/
 func parseArgs(args string) []int {
 	str := strings.SplitN(args, " ", 3)
 
@@ -244,11 +252,13 @@ func parseArgs(args string) []int {
 	return []int{}
 }
 
-func getStartMessage(endTime time.Time) string {
-	// TODO: Needs random selected messages
-	message := "Ich starte um %02d:%02d Uhr, ihr Maden. Also seht zu oder verreckt an Bewegungsmangel."
-	return fmt.Sprintf(message, endTime.Hour(), endTime.Minute())
-}
+/*
+	func getStartMessage(endTime time.Time) string {
+		// TODO: Needs random selected messages
+		message := "Ich starte um %02d:%02d Uhr, ihr Maden. Also seht zu oder verreckt an Bewegungsmangel."
+		return fmt.Sprintf(message, endTime.Hour(), endTime.Minute())
+	}
+*/
 
 func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
 	actions := []*model.PostAction{}
@@ -271,7 +281,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	})
 
 	actions = append(actions, &model.PostAction{
-		Name: "Ich weiß dieser Knopf ist sinnlos, aber ich drück ihn trotzdem",
+		Name: "Teilnahme zurückziehen",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("%s/plugins/%s/api/v1/polls/%s/option/add/request", "siteURL", "pluginID", "p.ID"),
@@ -279,8 +289,8 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	})
 
 	return []*model.SlackAttachment{{
-		AuthorName: "kicker `BOT`",
-		Title:      "Der kicker `BOT` hat euch herausgefordert! Wer stellt sich ihm?",
+		AuthorName: "kicker BOT",
+		Title:      "Der kicker-BOT hat euch herausgefordert! Wer stellt sich ihm?",
 		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", endTime.Hour(), endTime.Minute()),
 		Actions:    actions,
 	}}
