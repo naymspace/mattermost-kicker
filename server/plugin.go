@@ -35,6 +35,7 @@ type KickerPlugin struct {
 	configuration *configuration
 
 	enabled bool
+	busy    bool
 
 	participants []*model.User
 }
@@ -82,10 +83,12 @@ func (p *KickerPlugin) OnActivate() error {
 	p.router = mux.NewRouter()
 	p.router.HandleFunc("/participate", p.ParticipateHandler)
 
+	p.busy = false
 	return nil
 }
 
 // ParticipateHandler handles participation requests. orly?
+// https://i.kym-cdn.com/photos/images/masonry/000/004/734/348799688_l.jpg
 func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
 	// vars := mux.Vars(r)
 	w.WriteHeader(http.StatusOK)
@@ -148,6 +151,18 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	// p.API.LogInfo(args.Command, nil)
 	responseText := "Der Kicker wurde gestartet."
 	sassyResponseText := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
+	busyResponsetext := "![](https://media3.giphy.com/media/cOFLK7ZbliXW21RfmE/giphy.gif?cid=790b7611f21be7df606604f241cada0852c238865fccab98&rid=giphy.gif)"
+
+	// check if kicker is busy
+	if p.busy {
+		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: busyResponsetext}, nil
+	}
+
+	// flag busy
+	p.busy = true
+
+	// clear participants
+	p.participants = []*model.User{}
 
 	// parse Args
 	parsedArgs := parseArgs(args.Command)
@@ -157,14 +172,13 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	endTime := getEndTime(parsedArgs...)
 	duration := endTime.Sub(time.Now().In(loc))
 
-	// If invalid, return sassy response
+	// if invalid, return sassy response
 	if duration <= 0 {
+		p.busy = false
 		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: sassyResponseText}, nil
 	}
 
-	p.participants = []*model.User{}
-
-	// create Bot-Post for ending the poll
+	// create bot-post for ending the poll
 	createEndPollPost := func() {
 		message := "Es nehmen teil: "
 
@@ -179,11 +193,13 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			RootId:    args.RootId,
 			Type:      model.POST_DEFAULT,
 		})
+
+		p.busy = false
 	}
-	// Delay execution until endTime is reached
+	// delay execution until endTime is reached
 	time.AfterFunc(duration, createEndPollPost)
 
-	// create Bot-Post for initiating the poll
+	// create bot-post for initiating the poll
 	post := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: args.ChannelId,
@@ -219,7 +235,7 @@ func getEndTime(params ...int) time.Time {
 
 /*
   parses given args
-  Takes the first 3 arguments:
+  takes the first 3 arguments:
   - the command "kicker" itself
   - a given hour
   - a given minute
