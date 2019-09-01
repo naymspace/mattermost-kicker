@@ -183,11 +183,10 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand checks the given arguments and the internal state, and returns the according message
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	// Log Command:
-	// p.API.LogInfo(args.Command, nil)
 	responseText := "Der Kicker wurde gestartet."
 	sassyResponseText := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
 	busyResponsetext := "![](https://media3.giphy.com/media/cOFLK7ZbliXW21RfmE/giphy.gif?cid=790b7611f21be7df606604f241cada0852c238865fccab98&rid=giphy.gif)"
+
 	// check if kicker is busy
 	if p.busy {
 		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: busyResponsetext}, nil
@@ -309,7 +308,7 @@ func choosePlayer(all []player) []player {
 			participants = remove(participants, randIndex)
 		}
 	} else {
-		// not enough Pṕarticipants
+		// not enough participants
 		// take all participants
 		for _, participant := range participants {
 			returnPlayer = append(returnPlayer, participant)
@@ -378,14 +377,6 @@ func parseArgs(args string) []int {
 
 	return []int{}
 }
-
-/*
-	func getStartMessage(endTime time.Time) string {
-		// TODO: Needs random selected messages
-		message := "Ich starte um %02d:%02d Uhr, ihr Maden. Also seht zu oder verreckt an Bewegungsmangel."
-		return fmt.Sprintf(message, endTime.Hour(), endTime.Minute())
-	}
-*/
 
 func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
 	actions := []*model.PostAction{}
