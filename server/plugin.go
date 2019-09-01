@@ -58,7 +58,6 @@ func (p *KickerPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *ht
 
 // OnActivate registers a command and a bot, sets up routing, and initializes the plugin
 func (p *KickerPlugin) OnActivate() error {
-	p.enabled = true
 	err := p.API.RegisterCommand(&model.Command{
 		Trigger:          trigger,
 		Description:      "TODO: describe me",
@@ -93,7 +92,11 @@ func (p *KickerPlugin) OnActivate() error {
 	p.router.HandleFunc("/participate", p.ParticipateHandler)
 	p.router.HandleFunc("/volunteer", p.VolunteerHandler)
 	p.router.HandleFunc("/delete-participation", p.DeleteParticipationHandler)
+
+	// initialize plugin
+	p.enabled = true
 	p.busy = false
+
 	return nil
 }
 
