@@ -133,11 +133,13 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
-	for index, participant := range p.participants {
-		if user.Id == participant.user.Id {
-			p.participants = remove(p.participants, index)
+	var participants []player
+	for _, participant := range p.participants {
+		if user.Id != participant.user.Id {
+			participants = append(participants, participant)
 		}
 	}
+	p.participants = participants
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
