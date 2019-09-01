@@ -19,7 +19,7 @@ import (
 const (
 	trigger              = "kicker"
 	botUserName          = "kicker"
-	botDisplayName       = "kicker"
+	botDisplayName       = "kicker BOT"
 	playerCount          = 4
 	wantLevelParticipant = 1
 	wantLevelVolunteer   = 0
@@ -62,9 +62,9 @@ func (p *KickerPlugin) OnActivate() error {
 	err := p.API.RegisterCommand(&model.Command{
 		Trigger:          trigger,
 		Description:      "TODO: describe me",
-		DisplayName:      "Kicker BOT",
+		DisplayName:      botDisplayName,
 		AutoComplete:     true,
-		AutoCompleteDesc: "Startet den Kicker BOT, e.g. /kicker 12 30",
+		AutoCompleteDesc: "Startet den " + botDisplayName + ", e.g. /" + trigger + " 12 30",
 		AutoCompleteHint: "[hour] [minute]",
 	})
 	if err != nil {
@@ -419,8 +419,8 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	})
 
 	return []*model.SlackAttachment{{
-		AuthorName: "kicker BOT",
-		Title:      "Der kicker-BOT hat euch herausgefordert! Wer möchte teilnehmen?",
+		AuthorName: botDisplayName,
+		Title:      "Der " + botDisplayName + " hat euch herausgefordert! Wer möchte teilnehmen?",
 		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", endTime.Hour(), endTime.Minute()),
 		Actions:    actions,
 	}}
