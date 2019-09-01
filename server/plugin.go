@@ -243,10 +243,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			return
 		}
 
-		message := "Es nehmen teil: "
-		for _, element := range chosenPlayer {
-			message += element.user.Username + ", "
-		}
+		message := "Es nehmen teil: " + p.joinPlayers(chosenPlayer)
 
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
