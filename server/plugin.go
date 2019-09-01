@@ -229,7 +229,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// create bot-post for ending the poll
 	createEndPollPost := func() {
-		chosenPlayer := choosePlayer(p.participants)
+		chosenPlayer := p.choosePlayers()
 		// not enough player
 		if len(chosenPlayer) < playerCount {
 			p.API.CreatePost(&model.Post{
@@ -276,57 +276,37 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 }
 
 // TODO: DRY
-func choosePlayer(all []player) []player {
+func (p *KickerPlugin) choosePlayers() []player {
 	var returnPlayer []player
-	var participants []player
-	var volunteers []player
-	participantCount := 0
-	volunteerCount := 0
-	for index, element := range all {
-		if element.wantLevel == wantLevelParticipant {
-			participantCount++
-			participants = append(participants, all[index])
-		} else {
-			volunteerCount++
-			volunteers = append(volunteers, all[index])
-		}
+	participants := p.getParticipants()
+	volunteers := p.getVolunteers()
+
+	if len(participants)+len(volunteers) < playerCount {
+		// not enough players! return all that wanted to play
+		return append(participants, volunteers...)
 	}
 
-	if participantCount+volunteerCount < playerCount {
-		// not enough player! return all that wanted to play:
-		for _, volunteer := range volunteers {
-			returnPlayer = append(returnPlayer, volunteer)
-		}
-		for _, participant := range participants {
-			returnPlayer = append(returnPlayer, participant)
-		}
-		return returnPlayer
-	}
+	// generate seed depending on server-time
+	rand.Seed(time.Now().UnixNano())
 
-	if participantCount >= playerCount {
+	if len(participants) >= playerCount {
 		// enough participants
 		for i := 0; i < playerCount; i++ {
-			// generate seed depending on server-time
-			rand.Seed(time.Now().UnixNano())
-			// generate index within length of participants
+			// add random participants
 			randIndex := rand.Intn(len(participants))
-			participant := participants[randIndex]
-			returnPlayer = append(returnPlayer, participant)
+			returnPlayer = append(returnPlayer, participants[randIndex])
 			participants = remove(participants, randIndex)
 		}
 	} else {
 		// not enough participants
 		// take all participants
-		for _, participant := range participants {
-			returnPlayer = append(returnPlayer, participant)
-		}
+		returnPlayer = append(returnPlayer, participants...)
+		// add random volunteers
 		restPlayerCount := playerCount - len(returnPlayer)
 		for i := 0; i < restPlayerCount; i++ {
-			rand.Seed(time.Now().UnixNano())
 			randIndex := rand.Intn(len(volunteers))
-			volunteer := volunteers[randIndex]
-			returnPlayer = append(returnPlayer, volunteer)
-			participants = remove(volunteers, randIndex)
+			returnPlayer = append(returnPlayer, volunteers[randIndex])
+			volunteers = remove(volunteers, randIndex)
 		}
 
 	}
