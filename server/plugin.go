@@ -43,8 +43,10 @@ type KickerPlugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
-	enabled bool
-	busy    bool
+	enabled  bool
+	busy     bool
+	pollPost *model.Post
+	endTime  time.Time
 
 	participants []player
 }
@@ -110,6 +112,8 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 		wantLevel: wantLevelParticipant,
 	})
 
+	p.updatePollPost()
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
@@ -124,6 +128,8 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 		user:      user,
 		wantLevel: wantLevelVolunteer,
 	})
+
+	p.updatePollPost()
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
@@ -141,8 +147,15 @@ func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http
 	}
 	p.participants = participants
 
+	p.updatePollPost()
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+}
+
+func (p *KickerPlugin) updatePollPost() {
+	model.ParseSlackAttachment(p.pollPost, p.buildSlackAttachments())
+	p.pollPost, _ = p.API.UpdatePost(p.pollPost)
 }
 
 // OnDeactivate unregisters the command
@@ -205,8 +218,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// get the wait-duration until poll ends
 	loc, _ := time.LoadLocation("Europe/Berlin")
-	endTime := getEndTime(parsedArgs...)
-	duration := endTime.Sub(time.Now().In(loc))
+	p.endTime = getEndTime(parsedArgs...)
+	duration := p.endTime.Sub(time.Now().In(loc))
 
 	// if invalid, return sassy response
 	if duration <= 0 {
@@ -261,8 +274,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		RootId:    args.RootId,
 		Type:      model.POST_DEFAULT,
 	}
-	model.ParseSlackAttachment(post, p.buildSlackAttachments(endTime))
-	p.API.CreatePost(post)
+	model.ParseSlackAttachment(post, p.buildSlackAttachments())
+	p.pollPost, _ = p.API.CreatePost(post)
 
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
@@ -380,7 +393,7 @@ func parseArgs(args string) []int {
 	return []int{}
 }
 
-func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
+func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
@@ -410,9 +423,67 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	return []*model.SlackAttachment{{
 		AuthorName: botDisplayName,
 		Title:      "Der " + botDisplayName + " hat euch herausgefordert! Wer möchte teilnehmen?",
-		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", endTime.Hour(), endTime.Minute()),
+		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", p.endTime.Hour(), p.endTime.Minute()),
 		Actions:    actions,
-	}}
+	}, p.buildParticipantsAttachment()}
+}
+
+func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
+	participants := p.getParticipants()
+	volunteers := p.getVolunteers()
+
+	if len(participants) == 0 && len(volunteers) == 0 {
+		return nil
+	}
+
+	text := ""
+
+	if len(participants) > 0 {
+		text += "👍: " + p.joinPlayers(participants) + "\n"
+	}
+
+	if len(volunteers) > 0 {
+		text += "👉: " + p.joinPlayers(volunteers) + "\n"
+	}
+
+	return &model.SlackAttachment{
+		Text: text,
+	}
+}
+
+func (p *KickerPlugin) getParticipants() []player {
+	var players []player
+
+	for index, element := range p.participants {
+		if element.wantLevel == wantLevelParticipant {
+			players = append(players, p.participants[index])
+		}
+	}
+
+	return players
+}
+
+func (p *KickerPlugin) getVolunteers() []player {
+	var players []player
+
+	for index, element := range p.participants {
+		if element.wantLevel == wantLevelVolunteer {
+			players = append(players, p.participants[index])
+		}
+	}
+
+	return players
+}
+
+func (p *KickerPlugin) joinPlayers(players []player) string {
+	result := ""
+	for index, element := range players {
+		result += element.user.Username
+		if index+1 < len(players) {
+			result += ", "
+		}
+	}
+	return result
 }
 
 func appError(message string, err error) *model.AppError {
