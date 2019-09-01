@@ -232,15 +232,10 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		chosenPlayer := choosePlayer(p.participants)
 		// not enough player
 		if len(chosenPlayer) < playerCount {
-			message := "Nicht genug Spieler, es wollen spielen: "
-			for _, player := range chosenPlayer {
-				message += player.user.Username + ", "
-				// TODO: do we want to show the wantLevel?
-			}
 			p.API.CreatePost(&model.Post{
 				UserId:    p.botUserID,
 				ChannelId: args.ChannelId,
-				Message:   message,
+				Message:   "Nicht genug Spieler!",
 				RootId:    args.RootId,
 				Type:      model.POST_DEFAULT,
 			})
