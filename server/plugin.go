@@ -276,7 +276,7 @@ func choosePlayer(all []player) []player {
 	participantCount := 0
 	volunteerCount := 0
 	for index, element := range all {
-		if element.wantLevel > 0 {
+		if element.wantLevel == wantLevelParticipant {
 			participantCount++
 			participants = append(participants, all[index])
 		} else {
