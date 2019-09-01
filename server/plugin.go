@@ -49,14 +49,14 @@ type KickerPlugin struct {
 	participants []player
 }
 
-// ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
+// ServeHTTP delegates routing to the mux Router, which is configured in OnActivate
 func (p *KickerPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	p.router.ServeHTTP(w, r)
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
 
-// OnActivate ensures a configuration is set and initializes the API
+// OnActivate registers a command and a bot, sets up routing, and initializes the plugin
 func (p *KickerPlugin) OnActivate() error {
 	p.enabled = true
 	err := p.API.RegisterCommand(&model.Command{
@@ -97,8 +97,7 @@ func (p *KickerPlugin) OnActivate() error {
 	return nil
 }
 
-// ParticipateHandler handles participation requests. orly?
-// https://i.kym-cdn.com/photos/images/masonry/000/004/734/348799688_l.jpg
+// ParticipateHandler handles participation requests
 func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
 	// vars := mux.Vars(r)
 	w.WriteHeader(http.StatusOK)
@@ -120,7 +119,7 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 	fmt.Fprintf(w, "{\"response\":\"OKAY\"}\n")
 }
 
-// VolunteerHandler handles volunteering requests. ORLY?!
+// VolunteerHandler handles volunteering requests
 func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO: DRY
 	// get user info from Mattermost API
@@ -135,7 +134,7 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(w, "{\"response\":\"OKAY\"}\n")
 }
 
-// DeleteParticipationHandler handles deleting participation. YES FCKING RLY
+// DeleteParticipationHandler handles deleting participation request
 func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 	p.API.LogDebug("DeleteParticipationHandler", "user.Username", user.Username)
@@ -170,7 +169,7 @@ func (p *KickerPlugin) setProfileImage() error {
 	return nil
 }
 
-// ExecuteCommand returns a test string for now
+// ExecuteCommand checks the given command and passes it to executeCommand if valid
 func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	if !p.enabled {
 		return nil, appError("Cannot execute command while the plugin is disabled.", nil)
@@ -185,7 +184,7 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 	return nil, appError("Command trigger "+args.Command+"is not supported by this plugin.", nil)
 }
 
-// executeCommand returns a sample text
+// executeCommand checks the given arguments and the internal state, and returns the according message
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	// Log Command:
 	// p.API.LogInfo(args.Command, nil)
