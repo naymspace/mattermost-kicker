@@ -398,8 +398,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 		Name: "Bin dabei",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			// TODO: where to get these values?
-			URL: fmt.Sprintf("%s/plugins/%s/participate", "http://localhost:8065", "com.naymspace.mattermost-kicker"),
+			URL: fmt.Sprintf("plugins/%s/participate", manifest.ID),
 		},
 	})
 
@@ -407,7 +406,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 		Name: "Wenn sich sonst keiner traut 🤷",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/volunteer", "http://localhost:8065", "com.naymspace.mattermost-kicker"),
+			URL: fmt.Sprintf("plugins/%s/volunteer", manifest.ID),
 		},
 	})
 
@@ -415,7 +414,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 		Name: "Teilnahme zurückziehen",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/delete-participation", "http://localhost:8065", "com.naymspace.mattermost-kicker"),
+			URL: fmt.Sprintf("plugins/%s/delete-participation", manifest.ID),
 		},
 	})
 

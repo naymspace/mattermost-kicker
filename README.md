@@ -28,6 +28,10 @@ Wait a few seconds, then visit the Mattermost start page: http://localhost:8065/
 
 Register an account (email does not matter, no mails are sent out), then create a team.
 
+Open the [System Console → Web Server](http://localhost:8065/admin_console/environment/web_server).
+
+Enter `http://localhost:8065` into the „Site URL“ field, and hit the „Save“ buttons. This is **required** to make the plugin work.
+
 Open the [System Console → Plugin Management](http://localhost:8065/admin_console/plugins/plugin_management).
 
 Go to „Upload Plugin“ and upload the built Mattermost plugin archive, click „Upload“.
