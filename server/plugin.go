@@ -382,7 +382,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
-		Name: "Bin dabei",
+		Name: "Bin dabei 👍",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("plugins/%s/participate", manifest.ID),
@@ -390,7 +390,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	})
 
 	actions = append(actions, &model.PostAction{
-		Name: "Wenn sich sonst keiner traut 🤷",
+		Name: "Wenn sich sonst keiner traut 👉",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("plugins/%s/volunteer", manifest.ID),
@@ -398,7 +398,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	})
 
 	actions = append(actions, &model.PostAction{
-		Name: "Teilnahme zurückziehen",
+		Name: "Och nö 👎",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("plugins/%s/delete-participation", manifest.ID),
