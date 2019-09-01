@@ -321,7 +321,7 @@ func choosePlayer(all []player) []player {
 			randIndex := rand.Intn(len(volunteers))
 			volunteer := volunteers[randIndex]
 			returnPlayer = append(returnPlayer, volunteer)
-			participants = remove(volunteers, randIndex)
+			volunteers = remove(volunteers, randIndex)
 		}
 
 	}
