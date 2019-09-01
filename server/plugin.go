@@ -105,6 +105,7 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 	// get user info from Mattermost API
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
+	p.removeParticipantById(user.Id)
 	p.participants = append(p.participants, player{
 		user:      user,
 		wantLevel: wantLevelParticipant,
@@ -120,6 +121,7 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	// get user info from Mattermost API
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
+	p.removeParticipantById(user.Id)
 	p.participants = append(p.participants, player{
 		user:      user,
 		wantLevel: wantLevelVolunteer,
@@ -133,16 +135,20 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
+	p.removeParticipantById(user.Id)
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+}
+
+func (p *KickerPlugin) removeParticipantById(id string) {
 	var participants []player
 	for _, participant := range p.participants {
-		if user.Id != participant.user.Id {
+		if id != participant.user.Id {
 			participants = append(participants, participant)
 		}
 	}
 	p.participants = participants
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // OnDeactivate unregisters the command
