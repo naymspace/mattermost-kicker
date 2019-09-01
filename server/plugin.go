@@ -102,24 +102,16 @@ func (p *KickerPlugin) OnActivate() error {
 
 // ParticipateHandler handles participation requests
 func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
-	// vars := mux.Vars(r)
-	w.WriteHeader(http.StatusOK)
-	// fmt.Fprintf(w, "Category: %v\n", vars["category"])
-	p.API.LogDebug("ParticipateHandler called", "user_id", r.Header.Get("Mattermost-User-Id"))
-
-	// out, _ := json.Marshal(r)
-	// p.API.LogDebug("ParticipateHandler called", "r", string(out))
-
 	// get user info from Mattermost API
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-	p.API.LogDebug("ParticipateHandler", "user.Username", user.Username)
 
 	p.participants = append(p.participants, player{
 		user:      user,
 		wantLevel: wantLevelParticipant,
 	})
 
-	fmt.Fprintf(w, "{\"response\":\"OKAY\"}\n")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // VolunteerHandler handles volunteering requests
@@ -127,26 +119,28 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	// TODO: DRY
 	// get user info from Mattermost API
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-	p.API.LogDebug("VolunteerHandler", "user.Username", user.Username)
 
 	p.participants = append(p.participants, player{
 		user:      user,
 		wantLevel: wantLevelVolunteer,
 	})
 
-	fmt.Fprintf(w, "{\"response\":\"OKAY\"}\n")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // DeleteParticipationHandler handles deleting participation request
 func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-	p.API.LogDebug("DeleteParticipationHandler", "user.Username", user.Username)
 
 	for index, participant := range p.participants {
 		if user.Id == participant.user.Id {
 			p.participants = remove(p.participants, index)
 		}
 	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // OnDeactivate unregisters the command
