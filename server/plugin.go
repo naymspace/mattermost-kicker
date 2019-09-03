@@ -47,6 +47,7 @@ type KickerPlugin struct {
 	busy    bool
 
 	participants []player
+	siteURL      string
 }
 
 // ServeHTTP delegates routing to the mux Router, which is configured in OnActivate
@@ -69,6 +70,10 @@ func (p *KickerPlugin) OnActivate() error {
 	if err != nil {
 		return err
 	}
+
+	// Get siteURL from config
+	config := p.API.GetConfig()
+	p.siteURL = *config.ServiceSettings.SiteURL
 
 	// Init bot
 	bot := &model.Bot{
@@ -393,7 +398,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 		Name: "Bin dabei 👍",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("plugins/%s/participate", manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/participate", p.siteURL, manifest.ID),
 		},
 	})
 
@@ -401,7 +406,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 		Name: "Wenn sich sonst keiner traut 👉",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("plugins/%s/volunteer", manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/volunteer", p.siteURL, manifest.ID),
 		},
 	})
 
@@ -409,7 +414,7 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 		Name: "Och nö 👎",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("plugins/%s/delete-participation", manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/delete-participation", p.siteURL, manifest.ID),
 		},
 	})
 
