@@ -5,5 +5,5 @@ var manifest = struct {
 	Version string
 }{
 	ID:      "com.naymspace.mattermost-kicker",
-	Version: "0.1.0",
+	Version: "1.0.0",
 }
