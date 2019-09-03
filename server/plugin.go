@@ -49,6 +49,7 @@ type KickerPlugin struct {
 	endTime  time.Time
 
 	participants []player
+	siteURL      string
 }
 
 // ServeHTTP delegates routing to the mux Router, which is configured in OnActivate
@@ -71,6 +72,10 @@ func (p *KickerPlugin) OnActivate() error {
 	if err != nil {
 		return err
 	}
+
+	// Get siteURL from config
+	config := p.API.GetConfig()
+	p.siteURL = *config.ServiceSettings.SiteURL
 
 	// Init bot
 	bot := &model.Bot{
@@ -107,7 +112,7 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 	// get user info from Mattermost API
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
-	p.removeParticipantById(user.Id)
+	p.removeParticipantByID(user.Id)
 	p.participants = append(p.participants, player{
 		user:      user,
 		wantLevel: wantLevelParticipant,
@@ -125,7 +130,7 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	// get user info from Mattermost API
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
-	p.removeParticipantById(user.Id)
+	p.removeParticipantByID(user.Id)
 	p.participants = append(p.participants, player{
 		user:      user,
 		wantLevel: wantLevelVolunteer,
@@ -141,7 +146,7 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
-	p.removeParticipantById(user.Id)
+	p.removeParticipantByID(user.Id)
 
 	p.updatePollPost()
 
@@ -149,7 +154,7 @@ func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
-func (p *KickerPlugin) removeParticipantById(id string) {
+func (p *KickerPlugin) removeParticipantByID(id string) {
 	var participants []player
 	for _, participant := range p.participants {
 		if id != participant.user.Id {
@@ -378,7 +383,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 		Name: "Bin dabei 👍",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("plugins/%s/participate", manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/participate", p.siteURL, manifest.ID),
 		},
 	})
 
@@ -386,7 +391,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 		Name: "Wenn sich sonst keiner traut 👉",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("plugins/%s/volunteer", manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/volunteer", p.siteURL, manifest.ID),
 		},
 	})
 
@@ -394,7 +399,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 		Name: "Och nö 👎",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("plugins/%s/delete-participation", manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/delete-participation", p.siteURL, manifest.ID),
 		},
 	})
 
