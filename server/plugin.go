@@ -43,8 +43,10 @@ type KickerPlugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
-	enabled bool
-	busy    bool
+	enabled  bool
+	busy     bool
+	pollPost *model.Post
+	endTime  time.Time
 
 	participants []player
 	siteURL      string
@@ -116,6 +118,8 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 		wantLevel: wantLevelParticipant,
 	})
 
+	p.updatePollPost()
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
@@ -132,6 +136,8 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 		wantLevel: wantLevelVolunteer,
 	})
 
+	p.updatePollPost()
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
@@ -141,6 +147,8 @@ func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
 	p.removeParticipantByID(user.Id)
+
+	p.updatePollPost()
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
@@ -154,6 +162,11 @@ func (p *KickerPlugin) removeParticipantByID(id string) {
 		}
 	}
 	p.participants = participants
+}
+
+func (p *KickerPlugin) updatePollPost() {
+	model.ParseSlackAttachment(p.pollPost, p.buildSlackAttachments())
+	p.pollPost, _ = p.API.UpdatePost(p.pollPost)
 }
 
 // OnDeactivate unregisters the command
@@ -216,8 +229,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// get the wait-duration until poll ends
 	loc, _ := time.LoadLocation("Europe/Berlin")
-	endTime := getEndTime(parsedArgs...)
-	duration := endTime.Sub(time.Now().In(loc))
+	p.endTime = getEndTime(parsedArgs...)
+	duration := p.endTime.Sub(time.Now().In(loc))
 
 	// if invalid, return sassy response
 	if duration <= 0 {
@@ -227,18 +240,13 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// create bot-post for ending the poll
 	createEndPollPost := func() {
-		chosenPlayer := choosePlayer(p.participants)
+		chosenPlayer := p.choosePlayers()
 		// not enough player
 		if len(chosenPlayer) < playerCount {
-			message := "Nicht genug Spieler, es wollen spielen: "
-			for _, player := range chosenPlayer {
-				message += player.user.Username + ", "
-				// TODO: do we want to show the wantLevel?
-			}
 			p.API.CreatePost(&model.Post{
 				UserId:    p.botUserID,
 				ChannelId: args.ChannelId,
-				Message:   message,
+				Message:   "Nicht genug Spieler!",
 				RootId:    args.RootId,
 				Type:      model.POST_DEFAULT,
 			})
@@ -246,10 +254,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			return
 		}
 
-		message := "Es nehmen teil: "
-		for _, element := range chosenPlayer {
-			message += element.user.Username + ", "
-		}
+		message := "Es nehmen teil: " + p.joinPlayers(chosenPlayer)
 
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
@@ -272,8 +277,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		RootId:    args.RootId,
 		Type:      model.POST_DEFAULT,
 	}
-	model.ParseSlackAttachment(post, p.buildSlackAttachments(endTime))
-	p.API.CreatePost(post)
+	model.ParseSlackAttachment(post, p.buildSlackAttachments())
+	p.pollPost, _ = p.API.CreatePost(post)
 
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
@@ -282,56 +287,36 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 }
 
 // TODO: DRY
-func choosePlayer(all []player) []player {
+func (p *KickerPlugin) choosePlayers() []player {
 	var returnPlayer []player
-	var participants []player
-	var volunteers []player
-	participantCount := 0
-	volunteerCount := 0
-	for index, element := range all {
-		if element.wantLevel == wantLevelParticipant {
-			participantCount++
-			participants = append(participants, all[index])
-		} else {
-			volunteerCount++
-			volunteers = append(volunteers, all[index])
-		}
+	participants := p.getParticipants()
+	volunteers := p.getVolunteers()
+
+	if len(participants)+len(volunteers) < playerCount {
+		// not enough players! return all that wanted to play
+		return append(participants, volunteers...)
 	}
 
-	if participantCount+volunteerCount < playerCount {
-		// not enough player! return all that wanted to play:
-		for _, volunteer := range volunteers {
-			returnPlayer = append(returnPlayer, volunteer)
-		}
-		for _, participant := range participants {
-			returnPlayer = append(returnPlayer, participant)
-		}
-		return returnPlayer
-	}
+	// generate seed depending on server-time
+	rand.Seed(time.Now().UnixNano())
 
-	if participantCount >= playerCount {
+	if len(participants) >= playerCount {
 		// enough participants
 		for i := 0; i < playerCount; i++ {
-			// generate seed depending on server-time
-			rand.Seed(time.Now().UnixNano())
-			// generate index within length of participants
+			// add random participants
 			randIndex := rand.Intn(len(participants))
-			participant := participants[randIndex]
-			returnPlayer = append(returnPlayer, participant)
+			returnPlayer = append(returnPlayer, participants[randIndex])
 			participants = remove(participants, randIndex)
 		}
 	} else {
 		// not enough participants
 		// take all participants
-		for _, participant := range participants {
-			returnPlayer = append(returnPlayer, participant)
-		}
+		returnPlayer = append(returnPlayer, participants...)
+		// add random volunteers
 		restPlayerCount := playerCount - len(returnPlayer)
 		for i := 0; i < restPlayerCount; i++ {
-			rand.Seed(time.Now().UnixNano())
 			randIndex := rand.Intn(len(volunteers))
-			volunteer := volunteers[randIndex]
-			returnPlayer = append(returnPlayer, volunteer)
+			returnPlayer = append(returnPlayer, volunteers[randIndex])
 			volunteers = remove(volunteers, randIndex)
 		}
 
@@ -391,7 +376,7 @@ func parseArgs(args string) []int {
 	return []int{}
 }
 
-func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAttachment {
+func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
@@ -421,9 +406,67 @@ func (p *KickerPlugin) buildSlackAttachments(endTime time.Time) []*model.SlackAt
 	return []*model.SlackAttachment{{
 		AuthorName: botDisplayName,
 		Title:      "Der " + botDisplayName + " hat euch herausgefordert! Wer möchte teilnehmen?",
-		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", endTime.Hour(), endTime.Minute()),
+		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", p.endTime.Hour(), p.endTime.Minute()),
 		Actions:    actions,
-	}}
+	}, p.buildParticipantsAttachment()}
+}
+
+func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
+	participants := p.getParticipants()
+	volunteers := p.getVolunteers()
+
+	if len(participants) == 0 && len(volunteers) == 0 {
+		return nil
+	}
+
+	text := ""
+
+	if len(participants) > 0 {
+		text += "👍: " + p.joinPlayers(participants) + "\n"
+	}
+
+	if len(volunteers) > 0 {
+		text += "👉: " + p.joinPlayers(volunteers) + "\n"
+	}
+
+	return &model.SlackAttachment{
+		Text: text,
+	}
+}
+
+func (p *KickerPlugin) getParticipants() []player {
+	var players []player
+
+	for index, element := range p.participants {
+		if element.wantLevel == wantLevelParticipant {
+			players = append(players, p.participants[index])
+		}
+	}
+
+	return players
+}
+
+func (p *KickerPlugin) getVolunteers() []player {
+	var players []player
+
+	for index, element := range p.participants {
+		if element.wantLevel == wantLevelVolunteer {
+			players = append(players, p.participants[index])
+		}
+	}
+
+	return players
+}
+
+func (p *KickerPlugin) joinPlayers(players []player) string {
+	result := ""
+	for index, element := range players {
+		result += element.user.Username
+		if index+1 < len(players) {
+			result += ", "
+		}
+	}
+	return result
 }
 
 func appError(message string, err error) *model.AppError {
