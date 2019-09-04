@@ -514,28 +514,12 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 
 // GetParticipants returns all Players with the "participant" want level
 func (p *KickerPlugin) GetParticipants() []Player {
-	var players []Player
-
-	for index, element := range p.participants {
-		if element.wantLevel == wantLevelParticipant {
-			players = append(players, p.participants[index])
-		}
-	}
-
-	return players
+	return p.filterParticipantsByWantlevel(wantLevelParticipant)
 }
 
 // GetVolunteers returns all Players with the "volunteer" want level
 func (p *KickerPlugin) GetVolunteers() []Player {
-	var players []Player
-
-	for index, element := range p.participants {
-		if element.wantLevel == wantLevelVolunteer {
-			players = append(players, p.participants[index])
-		}
-	}
-
-	return players
+	return p.filterParticipantsByWantlevel(wantLevelVolunteer)
 }
 
 func (p *KickerPlugin) joinPlayers(players []Player) string {
