@@ -27,7 +27,8 @@ const (
 	paramMaxMinute       = 60
 )
 
-type player struct {
+// Player is the interface between Mattermost Users and a Kicker game
+type Player struct {
 	user      *model.User
 	wantLevel int
 }
@@ -54,7 +55,7 @@ type KickerPlugin struct {
 	channelID string
 	rootID    string
 
-	participants []player
+	participants []Player
 	siteURL      string
 }
 
@@ -120,7 +121,7 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
 	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, player{
+	p.participants = append(p.participants, Player{
 		user:      user,
 		wantLevel: wantLevelParticipant,
 	})
@@ -138,7 +139,7 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
 	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, player{
+	p.participants = append(p.participants, Player{
 		user:      user,
 		wantLevel: wantLevelVolunteer,
 	})
@@ -194,7 +195,7 @@ func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (p *KickerPlugin) removeParticipantByID(id string) {
-	var participants []player
+	var participants []Player
 	for _, participant := range p.participants {
 		if id != participant.user.Id {
 			participants = append(participants, participant)
@@ -260,7 +261,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	p.busy = true
 
 	// clear participants
-	p.participants = []player{}
+	p.participants = []Player{}
 
 	// set user, channel and root ID
 	p.userID = args.UserId
@@ -334,10 +335,10 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 }
 
 // TODO: DRY
-func (p *KickerPlugin) choosePlayers() []player {
-	var returnPlayer []player
-	participants := p.getParticipants()
-	volunteers := p.getVolunteers()
+func (p *KickerPlugin) choosePlayers() []Player {
+	var returnPlayer []Player
+	participants := p.GetParticipants()
+	volunteers := p.GetVolunteers()
 
 	if len(participants)+len(volunteers) < playerCount {
 		// not enough players! return all that wanted to play
@@ -470,8 +471,8 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 }
 
 func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
-	participants := p.getParticipants()
-	volunteers := p.getVolunteers()
+	participants := p.GetParticipants()
+	volunteers := p.GetVolunteers()
 
 	if len(participants) == 0 && len(volunteers) == 0 {
 		return nil
@@ -511,8 +512,9 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 	}}
 }
 
-func (p *KickerPlugin) getParticipants() []player {
-	var players []player
+// GetParticipants returns all Players with the "participant" want level
+func (p *KickerPlugin) GetParticipants() []Player {
+	var players []Player
 
 	for index, element := range p.participants {
 		if element.wantLevel == wantLevelParticipant {
@@ -523,8 +525,9 @@ func (p *KickerPlugin) getParticipants() []player {
 	return players
 }
 
-func (p *KickerPlugin) getVolunteers() []player {
-	var players []player
+// GetVolunteers returns all Players with the "volunteer" want level
+func (p *KickerPlugin) GetVolunteers() []Player {
+	var players []Player
 
 	for index, element := range p.participants {
 		if element.wantLevel == wantLevelVolunteer {
@@ -535,7 +538,7 @@ func (p *KickerPlugin) getVolunteers() []player {
 	return players
 }
 
-func (p *KickerPlugin) joinPlayers(players []player) string {
+func (p *KickerPlugin) joinPlayers(players []Player) string {
 	result := ""
 	for index, element := range players {
 		result += element.user.Username
@@ -557,7 +560,7 @@ func appError(message string, err error) *model.AppError {
 // remove element from array
 // TODO: Move this to a utility-class
 // from https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang
-func remove(s []player, i int) []player {
+func remove(s []Player, i int) []Player {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }
