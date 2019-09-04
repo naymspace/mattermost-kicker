@@ -6,28 +6,28 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
+var horst = &Player{
+	user: &model.User{
+		Username: "horst",
+	},
+	wantLevel: wantLevelParticipant,
+}
+
+var baerbel = &Player{
+	user: &model.User{
+		Username: "bärbel",
+	},
+	wantLevel: wantLevelParticipant,
+}
+
+var kay = &Player{
+	user: &model.User{
+		Username: "kay",
+	},
+	wantLevel: wantLevelVolunteer,
+}
+
 func SetupTestKickerPlugin() *KickerPlugin {
-	horst := &Player{
-		user: &model.User{
-			Username: "horst",
-		},
-		wantLevel: wantLevelParticipant,
-	}
-
-	baerbel := &Player{
-		user: &model.User{
-			Username: "bärbel",
-		},
-		wantLevel: wantLevelParticipant,
-	}
-
-	kay := &Player{
-		user: &model.User{
-			Username: "kay",
-		},
-		wantLevel: wantLevelVolunteer,
-	}
-
 	return &KickerPlugin{
 		participants: []Player{*horst, *baerbel, *kay},
 	}
@@ -62,5 +62,32 @@ func TestGetVolunteers(t *testing.T) {
 
 	if players[0].user.Username != "kay" {
 		t.Errorf("First volunteer name was incorrect, got: %s, want: %s", players[0].user.Username, "kay")
+	}
+}
+
+func TestJoinPlayerNames(t *testing.T) {
+	tables := []struct {
+		Players []Player
+		Result  string
+	}{
+		{
+			Players: []Player{},
+			Result:  "",
+		},
+		{
+			Players: []Player{*baerbel},
+			Result:  "bärbel",
+		},
+		{
+			Players: []Player{*horst, *baerbel},
+			Result:  "horst, bärbel",
+		},
+	}
+
+	for _, table := range tables {
+		r := JoinPlayerNames(table.Players)
+		if r != table.Result {
+			t.Errorf("Concatenated usernames were incorrect, got: %s, want: %s", r, table.Result)
+		}
 	}
 }

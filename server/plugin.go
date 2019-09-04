@@ -301,7 +301,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			return
 		}
 
-		message := "Es nehmen teil: " + p.joinPlayers(chosenPlayer)
+		message := "Es nehmen teil: " + JoinPlayerNames(chosenPlayer)
 
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
@@ -481,11 +481,11 @@ func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 	text := ""
 
 	if len(participants) > 0 {
-		text += "👍: " + p.joinPlayers(participants) + "\n"
+		text += "👍: " + JoinPlayerNames(participants) + "\n"
 	}
 
 	if len(volunteers) > 0 {
-		text += "👉: " + p.joinPlayers(volunteers) + "\n"
+		text += "👉: " + JoinPlayerNames(volunteers) + "\n"
 	}
 
 	return &model.SlackAttachment{
@@ -522,7 +522,8 @@ func (p *KickerPlugin) GetVolunteers() []Player {
 	return p.filterParticipantsByWantlevel(wantLevelVolunteer)
 }
 
-func (p *KickerPlugin) joinPlayers(players []Player) string {
+// JoinPlayerNames concatenates the usernames of the players
+func JoinPlayerNames(players []Player) string {
 	result := ""
 	for index, element := range players {
 		result += element.user.Username
