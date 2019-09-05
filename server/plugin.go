@@ -48,6 +48,7 @@ type KickerPlugin struct {
 	pollPost  *model.Post
 	endTime   time.Time
 	timer     *time.Timer
+	userID    string // user-ID of user who started a game
 	channelID string
 	rootID    string
 
@@ -160,20 +161,31 @@ func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http
 
 // CancelGameHandler handles canceling game requests
 func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Handle Error
+	user, err := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "{\"response\":\"Invalid User\"}\n")
+		return
+	}
+
+	if user.Id != p.userID {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "{\"response\":\"Not Authorized\"}\n")
+		return
+	}
 
 	if p.busy {
 		p.timer.Stop()
 		p.busy = false
-	}
 
-	p.API.CreatePost(&model.Post{
-		UserId:    p.botUserID,
-		ChannelId: p.channelID,
-		Message:   "Bot wurde gestoppt!",
-		RootId:    p.rootID,
-		Type:      model.POST_DEFAULT,
-	})
+		p.API.CreatePost(&model.Post{
+			UserId:    p.botUserID,
+			ChannelId: p.channelID,
+			Message:   "Bot wurde gestoppt!",
+			RootId:    p.rootID,
+			Type:      model.POST_DEFAULT,
+		})
+	}
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
@@ -248,7 +260,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	// clear participants
 	p.participants = []player{}
 
-	// set channel and root ID
+	// set user, channel and root ID
+	p.userID = args.UserId
 	p.channelID = args.ChannelId
 	p.rootID = args.RootId
 
