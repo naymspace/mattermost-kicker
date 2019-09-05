@@ -23,6 +23,8 @@ const (
 	playerCount          = 4
 	wantLevelParticipant = 1
 	wantLevelVolunteer   = 0
+	paramMaxHour         = 24
+	paramMaxMinute       = 60
 )
 
 type player struct {
@@ -225,8 +227,11 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	p.participants = []player{}
 
 	// parse Args
-	parsedArgs := parseArgs(args.Command)
-
+	parsedArgs, parseError := parseArgs(args.Command)
+	if parseError != nil {
+		p.busy = false
+		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: sassyResponseText}, nil
+	}
 	// get the wait-duration until poll ends
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	p.endTime = getEndTime(parsedArgs...)
@@ -348,32 +353,43 @@ func getEndTime(params ...int) time.Time {
   - a given hour
   - a given minute
 */
-func parseArgs(args string) []int {
+func parseArgs(args string) ([]int, *model.AppError) {
+	emptyParams := []int{}
 	str := strings.SplitN(args, " ", 3)
 
 	if len(str) == 3 {
 		i1, err1 := strconv.Atoi(str[1])
 		i2, err2 := strconv.Atoi(str[2])
 		if err1 != nil || err2 != nil {
-			return []int{}
+			return emptyParams, appError("Parsing failed", nil)
+		}
+		// Check for Limits
+		if i1 >= paramMaxHour || i1 < 0 {
+			return emptyParams, appError("Parsing failed", nil)
+		}
+		if i2 >= paramMaxMinute || i2 < 0 {
+			return emptyParams, appError("Parsing failed", nil)
 		}
 		return []int{
 			i1,
 			i2,
-		}
+		}, nil
 	}
 
 	if len(str) == 2 {
 		i1, err1 := strconv.Atoi(str[1])
 		if err1 != nil {
-			return []int{}
+			return emptyParams, appError("Parsing failed", nil)
+		}
+		if i1 >= paramMaxHour || i1 < 0 {
+			return emptyParams, appError("Parsing failed", nil)
 		}
 		return []int{
 			i1,
-		}
+		}, nil
 	}
 
-	return []int{}
+	return emptyParams, appError("Parsing failed", nil)
 }
 
 func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
