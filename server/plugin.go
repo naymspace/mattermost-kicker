@@ -43,10 +43,13 @@ type KickerPlugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
-	enabled  bool
-	busy     bool
-	pollPost *model.Post
-	endTime  time.Time
+	enabled   bool
+	busy      bool
+	pollPost  *model.Post
+	endTime   time.Time
+	timer     *time.Timer
+	channelID string
+	rootID    string
 
 	participants []player
 	siteURL      string
@@ -99,6 +102,7 @@ func (p *KickerPlugin) OnActivate() error {
 	p.router.HandleFunc("/participate", p.ParticipateHandler)
 	p.router.HandleFunc("/volunteer", p.VolunteerHandler)
 	p.router.HandleFunc("/delete-participation", p.DeleteParticipationHandler)
+	p.router.HandleFunc("/cancel-game", p.CancelGameHandler)
 
 	// initialize plugin
 	p.enabled = true
@@ -149,6 +153,27 @@ func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http
 	p.removeParticipantByID(user.Id)
 
 	p.updatePollPost()
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+}
+
+// CancelGameHandler handles canceling game requests
+func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO: Handle Error
+
+	if p.busy {
+		p.timer.Stop()
+		p.busy = false
+	}
+
+	p.API.CreatePost(&model.Post{
+		UserId:    p.botUserID,
+		ChannelId: p.channelID,
+		Message:   "Bot wurde gestoppt!",
+		RootId:    p.rootID,
+		Type:      model.POST_DEFAULT,
+	})
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
@@ -209,7 +234,6 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand checks the given arguments and the internal state, and returns the according message
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	responseText := "Der Kicker wurde gestartet."
 	sassyResponseText := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
 	busyResponsetext := "![](https://media3.giphy.com/media/cOFLK7ZbliXW21RfmE/giphy.gif?cid=790b7611f21be7df606604f241cada0852c238865fccab98&rid=giphy.gif)"
 
@@ -223,6 +247,10 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// clear participants
 	p.participants = []player{}
+
+	// set channel and root ID
+	p.channelID = args.ChannelId
+	p.rootID = args.RootId
 
 	// parse Args
 	parsedArgs := parseArgs(args.Command)
@@ -245,9 +273,9 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		if len(chosenPlayer) < playerCount {
 			p.API.CreatePost(&model.Post{
 				UserId:    p.botUserID,
-				ChannelId: args.ChannelId,
+				ChannelId: p.channelID,
 				Message:   "Nicht genug Spieler!",
-				RootId:    args.RootId,
+				RootId:    p.rootID,
 				Type:      model.POST_DEFAULT,
 			})
 			p.busy = false
@@ -258,23 +286,23 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
-			ChannelId: args.ChannelId,
+			ChannelId: p.channelID,
 			Message:   message,
-			RootId:    args.RootId,
+			RootId:    p.rootID,
 			Type:      model.POST_DEFAULT,
 		})
 
 		p.busy = false
 	}
 	// delay execution until endTime is reached
-	time.AfterFunc(duration, createEndPollPost)
+	p.timer = time.AfterFunc(duration, createEndPollPost)
 
 	// create bot-post for initiating the poll
 	post := &model.Post{
 		UserId:    p.botUserID,
-		ChannelId: args.ChannelId,
+		ChannelId: p.channelID,
 		Message:   "",
-		RootId:    args.RootId,
+		RootId:    p.rootID,
 		Type:      model.POST_DEFAULT,
 	}
 	model.ParseSlackAttachment(post, p.buildSlackAttachments())
@@ -282,7 +310,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
-		Text:         responseText,
+		Text:         "",
+		Attachments:  p.buildCancelGameAttachment(),
 	}, nil
 }
 
@@ -432,6 +461,25 @@ func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 	return &model.SlackAttachment{
 		Text: text,
 	}
+}
+
+func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
+	actions := []*model.PostAction{}
+
+	actions = append(actions, &model.PostAction{
+		Name: "Stop Bot",
+		Type: model.POST_ACTION_TYPE_BUTTON,
+		Integration: &model.PostActionIntegration{
+			URL: fmt.Sprintf("%s/plugins/%s/cancel-game", p.siteURL, manifest.ID),
+		},
+	})
+
+	return []*model.SlackAttachment{{
+		AuthorName: botDisplayName,
+		Title:      "Der Kicker wurde gestartet.",
+		Text:       "Zum stoppen kannst du diesen Button benutzen:",
+		Actions:    actions,
+	}}
 }
 
 func (p *KickerPlugin) getParticipants() []player {
