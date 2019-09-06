@@ -107,6 +107,13 @@ func (p *KickerPlugin) OnActivate() error {
 	p.router.HandleFunc("/delete-participation", p.DeleteParticipationHandler)
 	p.router.HandleFunc("/cancel-game", p.CancelGameHandler)
 
+	// serve static assets
+	bundlePath, err := p.API.GetBundlePath()
+	if err != nil {
+		return appError("failed to get bundle path", err)
+	}
+	p.router.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join(bundlePath, "assets")))))
+
 	// initialize plugin
 	p.enabled = true
 	p.busy = false
@@ -248,8 +255,8 @@ func (p *KickerPlugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs
 
 // executeCommand checks the given arguments and the internal state, and returns the according message
 func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
-	sassyResponseText := "![](https://media3.giphy.com/media/utmZFnsMhUHqU/giphy.gif?cid=790b76115d3b59e1417459456b2425e4&rid=giphy.gif)"
-	busyResponsetext := "![](https://media3.giphy.com/media/cOFLK7ZbliXW21RfmE/giphy.gif?cid=790b7611f21be7df606604f241cada0852c238865fccab98&rid=giphy.gif)"
+	sassyResponseText := fmt.Sprintf("![](%s/plugins/%s/assets/sassy.webp)", p.siteURL, manifest.ID)
+	busyResponsetext := fmt.Sprintf("![](%s/plugins/%s/assets/busy.webp)", p.siteURL, manifest.ID)
 
 	// check if kicker is busy
 	if p.busy {
