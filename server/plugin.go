@@ -490,7 +490,7 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 	return []*model.SlackAttachment{{
 		AuthorName: botDisplayName,
 		Title:      "Der Kicker wurde gestartet.",
-		Text:       "Zum stoppen kannst du diesen Button benutzen:",
+		Text:       "Zum Stoppen kannst du diesen Button benutzen:",
 		Actions:    actions,
 	}}
 }
