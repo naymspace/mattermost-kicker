@@ -115,9 +115,12 @@ func (p *KickerPlugin) OnActivate() error {
 	return nil
 }
 
-func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel int) {
+func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel int) *model.AppError {
 	// get user info from Mattermost API
-	user, _ := p.API.GetUser(userID)
+	user, err := p.API.GetUser(userID)
+	if err != nil {
+		return appError("failed to get user data", err)
+	}
 
 	p.removeParticipantByID(user.Id)
 	p.participants = append(p.participants, player{
@@ -126,27 +129,35 @@ func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel int) {
 	})
 
 	p.updatePollPost()
+
+	return nil
+}
+
+func (p *KickerPlugin) handleParticipationRequest(w http.ResponseWriter, r *http.Request, wantLevel int) {
+	err := p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevel)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "{\"response\":\"Invalid User\"}\n")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // ParticipateHandler handles participation requests
 func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
-	p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevelParticipant)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+	p.handleParticipationRequest(w, r, wantLevelParticipant)
 }
 
 // VolunteerHandler handles volunteering requests
 func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) {
-	p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevelVolunteer)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+	p.handleParticipationRequest(w, r, wantLevelVolunteer)
 }
 
 // DeclineHandler handles declining request
 func (p *KickerPlugin) DeclineHandler(w http.ResponseWriter, r *http.Request) {
-	p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevelDecline)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+	p.handleParticipationRequest(w, r, wantLevelDecline)
 }
 
 // CancelGameHandler handles canceling game requests
