@@ -112,9 +112,6 @@ func TestParseArgs(t *testing.T) {
 			Args: "",
 		},
 		{
-			Args: "/kicker", // TODO: this is valid!
-		},
-		{
 			Args: "/kicker pfnort",
 		},
 		{
@@ -178,6 +175,10 @@ func TestParseArgs(t *testing.T) {
 		Args   string
 		Result []int
 	}{
+		{
+			Args:   "/kicker",
+			Result: []int{},
+		},
 		{
 			Args:   "/kicker 12",
 			Result: []int{12},

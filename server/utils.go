@@ -65,5 +65,11 @@ func ParseArgs(args string) ([]int, *model.AppError) {
 		}, nil
 	}
 
+	if len(str) == 1 && str[0] != "" {
+		// only the trigger was passed, no hour or minute; this is a valid command,
+		// the default hour and minute will be used
+		return emptyParams, nil
+	}
+
 	return emptyParams, appError("Parsing failed", nil)
 }
