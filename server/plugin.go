@@ -23,6 +23,7 @@ const (
 	playerCount          = 4
 	wantLevelParticipant = 1
 	wantLevelVolunteer   = 0
+	wantLevelDecline     = -1
 	paramMaxHour         = 24
 	paramMaxMinute       = 60
 )
@@ -104,7 +105,7 @@ func (p *KickerPlugin) OnActivate() error {
 	p.router = mux.NewRouter()
 	p.router.HandleFunc("/participate", p.ParticipateHandler)
 	p.router.HandleFunc("/volunteer", p.VolunteerHandler)
-	p.router.HandleFunc("/delete-participation", p.DeleteParticipationHandler)
+	p.router.HandleFunc("/decline", p.DeclineHandler)
 	p.router.HandleFunc("/cancel-game", p.CancelGameHandler)
 
 	// initialize plugin
@@ -149,11 +150,15 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
-// DeleteParticipationHandler handles deleting participation request
-func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
+// DeclineHandler handles declining request
+func (p *KickerPlugin) DeclineHandler(w http.ResponseWriter, r *http.Request) {
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
 	p.removeParticipantByID(user.Id)
+	p.participants = append(p.participants, player{
+		user:      user,
+		wantLevel: wantLevelDecline,
+	})
 
 	p.updatePollPost()
 
@@ -457,7 +462,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 		Name: "Och nö 👎",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/delete-participation", p.siteURL, manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/decline", p.siteURL, manifest.ID),
 		},
 	})
 
@@ -472,8 +477,9 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 	participants := p.getParticipants()
 	volunteers := p.getVolunteers()
+	decliners := p.getDecliners()
 
-	if len(participants) == 0 && len(volunteers) == 0 {
+	if len(participants) == 0 && len(volunteers) == 0 && len(decliners) == 0 {
 		return nil
 	}
 
@@ -485,6 +491,10 @@ func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 
 	if len(volunteers) > 0 {
 		text += "👉: " + p.joinPlayers(volunteers) + "\n"
+	}
+
+	if len(decliners) > 0 {
+		text += "👎: " + p.joinPlayers(decliners) + "\n"
 	}
 
 	return &model.SlackAttachment{
@@ -528,6 +538,18 @@ func (p *KickerPlugin) getVolunteers() []player {
 
 	for index, element := range p.participants {
 		if element.wantLevel == wantLevelVolunteer {
+			players = append(players, p.participants[index])
+		}
+	}
+
+	return players
+}
+
+func (p *KickerPlugin) getDecliners() []player {
+	var players []player
+
+	for index, element := range p.participants {
+		if element.wantLevel == wantLevelDecline {
 			players = append(players, p.participants[index])
 		}
 	}
