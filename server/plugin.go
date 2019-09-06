@@ -115,53 +115,36 @@ func (p *KickerPlugin) OnActivate() error {
 	return nil
 }
 
-// ParticipateHandler handles participation requests
-func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
+func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel int) {
 	// get user info from Mattermost API
-	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
+	user, _ := p.API.GetUser(userID)
 
 	p.removeParticipantByID(user.Id)
 	p.participants = append(p.participants, player{
 		user:      user,
-		wantLevel: wantLevelParticipant,
+		wantLevel: wantLevel,
 	})
 
 	p.updatePollPost()
+}
 
+// ParticipateHandler handles participation requests
+func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
+	p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevelParticipant)
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // VolunteerHandler handles volunteering requests
 func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: DRY
-	// get user info from Mattermost API
-	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-
-	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, player{
-		user:      user,
-		wantLevel: wantLevelVolunteer,
-	})
-
-	p.updatePollPost()
-
+	p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevelVolunteer)
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
 
 // DeclineHandler handles declining request
 func (p *KickerPlugin) DeclineHandler(w http.ResponseWriter, r *http.Request) {
-	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-
-	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, player{
-		user:      user,
-		wantLevel: wantLevelDecline,
-	})
-
-	p.updatePollPost()
-
+	p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevelDecline)
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
 }
