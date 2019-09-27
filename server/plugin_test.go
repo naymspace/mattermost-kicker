@@ -260,7 +260,7 @@ func TestChoosePlayers(t *testing.T) {
 	for _, table := range singleResultTables {
 		player := SetupTestKickerPlugin(table.Players).ChoosePlayers()
 		if !playerEqual(player, table.Result) {
-			t.Errorf("Player choosing was incorrect for args")
+			t.Errorf("ChoosePlayers returns unexpected results")
 		}
 	}
 
@@ -279,8 +279,15 @@ func TestChoosePlayers(t *testing.T) {
 
 	for _, table := range multiResultTables {
 		player := SetupTestKickerPlugin(table.Players).ChoosePlayers()
-		if !playerEqual(player, table.Results[0]) && !playerEqual(player, table.Results[1]) {
-			t.Errorf("Player choosing was incorrect for args")
+		oneResultOccured := false
+		for _, result := range table.Results {
+			if playerEqual(player, result) {
+				oneResultOccured = true
+				break
+			}
+		}
+		if !oneResultOccured {
+			t.Errorf("ChoosePlayers returns unexpected results")
 		}
 	}
 }
