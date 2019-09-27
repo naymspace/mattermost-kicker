@@ -371,23 +371,6 @@ func (p *KickerPlugin) choosePlayers() []Player {
 	return returnPlayer
 }
 
-func getEndTime(params ...int) time.Time {
-	// default values
-	hour, minute := 12, 0
-
-	if len(params) == 2 {
-		hour, minute = params[0], params[1]
-	}
-
-	if len(params) == 1 {
-		hour = params[0]
-	}
-	loc, _ := time.LoadLocation("Europe/Berlin")
-
-	n := time.Now()
-	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, loc).Add(time.Hour * time.Duration(hour)).Add(time.Minute * time.Duration(minute))
-}
-
 func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
@@ -475,30 +458,14 @@ func (p *KickerPlugin) GetVolunteers() []Player {
 	return p.filterParticipantsByWantlevel(wantLevelVolunteer)
 }
 
-// JoinPlayerNames concatenates the usernames of the players
-func JoinPlayerNames(players []Player) string {
-	result := ""
-	for index, element := range players {
-		result += element.user.Username
-		if index+1 < len(players) {
-			result += ", "
+func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel int) []Player {
+	var players []Player
+
+	for _, player := range p.participants {
+		if player.wantLevel == wantLevel {
+			players = append(players, player)
 		}
 	}
-	return result
-}
 
-func appError(message string, err error) *model.AppError {
-	errorMessage := ""
-	if err != nil {
-		errorMessage = err.Error()
-	}
-	return model.NewAppError("Kicker Plugin", message, nil, errorMessage, http.StatusBadRequest)
-}
-
-// remove element from array
-// TODO: Move this to a utility-class
-// from https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang
-func remove(s []Player, i int) []Player {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
+	return players
 }
