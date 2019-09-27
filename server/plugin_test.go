@@ -48,6 +48,20 @@ var oke = &Player{
 	wantLevel: wantLevelVolunteer,
 }
 
+var mable = &Player{
+	user: &model.User{
+		Username: "mable",
+	},
+	wantLevel: wantLevelVolunteer,
+}
+
+var uwe = &Player{
+	user: &model.User{
+		Username: "uwe",
+	},
+	wantLevel: wantLevelVolunteer,
+}
+
 func SetupTestKickerPlugin(player []Player) *KickerPlugin {
 	return &KickerPlugin{
 		participants: player,
@@ -274,6 +288,15 @@ func TestChoosePlayers(t *testing.T) {
 		{
 			Players: []Player{*horst, *baerbel, *etienne, *kay, *oke},
 			Results: [][]Player{{*horst, *baerbel, *etienne, *kay}, {*horst, *baerbel, *etienne, *oke}},
+		},
+		// Test with 1 participants and 4 volunteer, should return 4 player, 1 of which we know
+		// But the other are decided random, so we need to check 4 cases.
+		{
+			Players: []Player{*horst, *kay, *oke, *mable, *uwe},
+			Results: [][]Player{{*horst, *kay, *oke, *mable},
+				{*horst, *kay, *oke, *uwe},
+				{*horst, *kay, *mable, *uwe},
+				{*horst, *oke, *mable, *uwe}},
 		},
 	}
 
