@@ -286,7 +286,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// create bot-post for ending the poll
 	createEndPollPost := func() {
-		chosenPlayer := p.choosePlayers()
+		chosenPlayer := p.ChoosePlayers()
 		// not enough player
 		if len(chosenPlayer) < playerCount {
 			p.API.CreatePost(&model.Post{
@@ -333,8 +333,9 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	}, nil
 }
 
-// TODO: DRY
-func (p *KickerPlugin) choosePlayers() []Player {
+// ChoosePlayers returns 4 random Player (if possible).
+// Participants are prefered over Volunteers.
+func (p *KickerPlugin) ChoosePlayers() []Player {
 	var returnPlayer []Player
 	participants := p.GetParticipants()
 	volunteers := p.GetVolunteers()
