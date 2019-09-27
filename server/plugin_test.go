@@ -162,6 +162,12 @@ func TestParseArgs(t *testing.T) {
 		{
 			Args: "/kicker 12 -1",
 		},
+		{
+			Args: "/kicker 12.5 0",
+		},
+		{
+			Args: "/kicker 1.8446744e+19 0",
+		},
 	}
 
 	for _, table := range errorTables {
