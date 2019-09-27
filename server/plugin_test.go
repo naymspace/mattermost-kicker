@@ -20,6 +20,20 @@ var baerbel = &Player{
 	wantLevel: wantLevelParticipant,
 }
 
+var etienne = &Player{
+	user: &model.User{
+		Username: "etienne",
+	},
+	wantLevel: wantLevelParticipant,
+}
+
+var ingebork = &Player{
+	user: &model.User{
+		Username: "ingebork",
+	},
+	wantLevel: wantLevelParticipant,
+}
+
 var kay = &Player{
 	user: &model.User{
 		Username: "kay",
@@ -27,14 +41,21 @@ var kay = &Player{
 	wantLevel: wantLevelVolunteer,
 }
 
-func SetupTestKickerPlugin() *KickerPlugin {
+var oke = &Player{
+	user: &model.User{
+		Username: "oke",
+	},
+	wantLevel: wantLevelVolunteer,
+}
+
+func SetupTestKickerPlugin(player []Player) *KickerPlugin {
 	return &KickerPlugin{
-		participants: []Player{*horst, *baerbel, *kay},
+		participants: player,
 	}
 }
 
 func TestGetParticipants(t *testing.T) {
-	p := SetupTestKickerPlugin()
+	p := SetupTestKickerPlugin([]Player{*horst, *baerbel, *kay})
 
 	players := p.GetParticipants()
 
@@ -52,7 +73,7 @@ func TestGetParticipants(t *testing.T) {
 }
 
 func TestGetVolunteers(t *testing.T) {
-	p := SetupTestKickerPlugin()
+	p := SetupTestKickerPlugin([]Player{*horst, *baerbel, *kay})
 
 	players := p.GetVolunteers()
 
@@ -217,4 +238,69 @@ func TestParseArgs(t *testing.T) {
 			t.Errorf("Success handling was incorrect for args: '%s', parsed ints should be: %d, was: %d, err should be nil, was: %s", table.Args, table.Result, ints, err)
 		}
 	}
+}
+
+func TestChoosePlayers(t *testing.T) {
+	singleResultTables := []struct {
+		Players []Player
+		Result  []Player
+	}{
+		// Test with 3 or less player, should return same players again
+		{
+			Players: []Player{*horst, *baerbel, *kay},
+			Result:  []Player{*kay, *horst, *baerbel},
+		},
+		// Test with 4 participants and 1 volunteer, should return 4 player, which we know
+		{
+			Players: []Player{*horst, *baerbel, *etienne, *ingebork, *kay},
+			Result:  []Player{*horst, *baerbel, *etienne, *ingebork},
+		},
+	}
+
+	for _, table := range singleResultTables {
+		player := SetupTestKickerPlugin(table.Players).ChoosePlayers()
+		if !playerEqual(player, table.Result) {
+			t.Errorf("Player choosing was incorrect for args")
+		}
+	}
+
+	// Since ChoosePlayer create randIndexes, we need to check multiple possible results
+	multiResultTables := []struct {
+		Players []Player
+		Results [][]Player
+	}{
+		// Test with 3 participants and 2 volunteer, should return 4 player, 3 of which we know
+		// But the fourth is decided by coinflip (kay || oke), so we need to check both
+		{
+			Players: []Player{*horst, *baerbel, *etienne, *kay, *oke},
+			Results: [][]Player{{*horst, *baerbel, *etienne, *kay}, {*horst, *baerbel, *etienne, *oke}},
+		},
+	}
+
+	for _, table := range multiResultTables {
+		player := SetupTestKickerPlugin(table.Players).ChoosePlayers()
+		if !playerEqual(player, table.Results[0]) && !playerEqual(player, table.Results[1]) {
+			t.Errorf("Player choosing was incorrect for args")
+		}
+	}
+}
+
+// compares Player-slices, ignores order
+func playerEqual(a, b []Player) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for _, va := range a {
+		foundAinB := false
+		for _, vb := range b {
+			if va == vb {
+				foundAinB = true
+			}
+		}
+
+		if !foundAinB {
+			return false
+		}
+	}
+	return true
 }
