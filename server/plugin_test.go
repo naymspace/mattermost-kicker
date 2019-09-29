@@ -10,63 +10,63 @@ var horst = &Player{
 	user: &model.User{
 		Username: "horst",
 	},
-	wantLevel: wantLevelParticipant,
+	wantLevel: WLParticipate,
 }
 
 var baerbel = &Player{
 	user: &model.User{
 		Username: "bärbel",
 	},
-	wantLevel: wantLevelParticipant,
+	wantLevel: WLParticipate,
 }
 
 var etienne = &Player{
 	user: &model.User{
 		Username: "etienne",
 	},
-	wantLevel: wantLevelParticipant,
+	wantLevel: WLParticipate,
 }
 
 var ingebork = &Player{
 	user: &model.User{
 		Username: "ingebork",
 	},
-	wantLevel: wantLevelParticipant,
+	wantLevel: WLParticipate,
 }
 
 var kay = &Player{
 	user: &model.User{
 		Username: "kay",
 	},
-	wantLevel: wantLevelVolunteer,
+	wantLevel: WLVolunteer,
 }
 
 var oke = &Player{
 	user: &model.User{
 		Username: "oke",
 	},
-	wantLevel: wantLevelVolunteer,
+	wantLevel: WLVolunteer,
 }
 
 var mable = &Player{
 	user: &model.User{
 		Username: "mable",
 	},
-	wantLevel: wantLevelVolunteer,
+	wantLevel: WLVolunteer,
 }
 
 var uwe = &Player{
 	user: &model.User{
 		Username: "uwe",
 	},
-	wantLevel: wantLevelVolunteer,
+	wantLevel: WLVolunteer,
 }
 
 var dieder = &Player{
 	user: &model.User{
 		Username: "dieder",
 	},
-	wantLevel: wantLevelDecline,
+	wantLevel: WLDecline,
 }
 
 func SetupTestKickerPlugin(player []Player) *KickerPlugin {

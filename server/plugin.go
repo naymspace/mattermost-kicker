@@ -15,22 +15,28 @@ import (
 	"github.com/mattermost/mattermost-server/plugin"
 )
 
+// WantLevel defines how urgent a Player wants to play
+type WantLevel int
+
 const (
-	trigger              = "kicker"
-	botUserName          = "kicker"
-	botDisplayName       = "kicker BOT"
-	playerCount          = 4
-	wantLevelParticipant = 1
-	wantLevelVolunteer   = 0
-	wantLevelDecline     = -1
-	paramMaxHour         = 24
-	paramMaxMinute       = 60
+	trigger        = "kicker"
+	botUserName    = "kicker"
+	botDisplayName = "kicker BOT"
+	playerCount    = 4
+	paramMaxHour   = 24
+	paramMaxMinute = 60
+	// WLDecline means that this Player does not want to play
+	WLDecline WantLevel = -1
+	// WLVolunteer means that this Player wants to play only if there are not enough players
+	WLVolunteer WantLevel = 0
+	// WLParticipate means that this Player wants to play
+	WLParticipate WantLevel = 1
 )
 
 // Player is the interface between Mattermost Users and a Kicker game
 type Player struct {
 	user      *model.User
-	wantLevel int
+	wantLevel WantLevel
 }
 
 // KickerPlugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -115,7 +121,7 @@ func (p *KickerPlugin) OnActivate() error {
 	return nil
 }
 
-func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel int) *model.AppError {
+func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel WantLevel) *model.AppError {
 	// get user info from Mattermost API
 	user, err := p.API.GetUser(userID)
 	if err != nil {
@@ -133,7 +139,7 @@ func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel int) *model.App
 	return nil
 }
 
-func (p *KickerPlugin) handleParticipationRequest(w http.ResponseWriter, r *http.Request, wantLevel int) {
+func (p *KickerPlugin) handleParticipationRequest(w http.ResponseWriter, r *http.Request, wantLevel WantLevel) {
 	err := p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevel)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -147,17 +153,17 @@ func (p *KickerPlugin) handleParticipationRequest(w http.ResponseWriter, r *http
 
 // ParticipateHandler handles participation requests
 func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
-	p.handleParticipationRequest(w, r, wantLevelParticipant)
+	p.handleParticipationRequest(w, r, WLParticipate)
 }
 
 // VolunteerHandler handles volunteering requests
 func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) {
-	p.handleParticipationRequest(w, r, wantLevelVolunteer)
+	p.handleParticipationRequest(w, r, WLVolunteer)
 }
 
 // DeclineHandler handles declining request
 func (p *KickerPlugin) DeclineHandler(w http.ResponseWriter, r *http.Request) {
-	p.handleParticipationRequest(w, r, wantLevelDecline)
+	p.handleParticipationRequest(w, r, WLDecline)
 }
 
 // CancelGameHandler handles canceling game requests
@@ -455,20 +461,20 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 
 // GetParticipants returns all Players with the "participant" want level
 func (p *KickerPlugin) GetParticipants() []Player {
-	return p.filterParticipantsByWantlevel(wantLevelParticipant)
+	return p.filterParticipantsByWantlevel(WLParticipate)
 }
 
 // GetVolunteers returns all Players with the "volunteer" want level
 func (p *KickerPlugin) GetVolunteers() []Player {
-	return p.filterParticipantsByWantlevel(wantLevelVolunteer)
+	return p.filterParticipantsByWantlevel(WLVolunteer)
 }
 
 // GetDecliners returns all Players with the "decline" want level
 func (p *KickerPlugin) GetDecliners() []Player {
-	return p.filterParticipantsByWantlevel(wantLevelDecline)
+	return p.filterParticipantsByWantlevel(WLDecline)
 }
 
-func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel int) []Player {
+func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel WantLevel) []Player {
 	var players []Player
 
 	for _, player := range p.participants {
