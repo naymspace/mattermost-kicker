@@ -62,6 +62,13 @@ var uwe = &Player{
 	wantLevel: wantLevelVolunteer,
 }
 
+var dieder = &Player{
+	user: &model.User{
+		Username: "dieder",
+	},
+	wantLevel: wantLevelDecline,
+}
+
 func SetupTestKickerPlugin(player []Player) *KickerPlugin {
 	return &KickerPlugin{
 		participants: player,
@@ -97,6 +104,20 @@ func TestGetVolunteers(t *testing.T) {
 
 	if players[0].user.Username != "kay" {
 		t.Errorf("First volunteer name was incorrect, got: %s, want: %s", players[0].user.Username, "kay")
+	}
+}
+
+func TestGetDecliners(t *testing.T) {
+	p := SetupTestKickerPlugin([]Player{*horst, *baerbel, *dieder})
+
+	players := p.GetDecliners()
+
+	if len(players) != 1 {
+		t.Errorf("Number of decliners was incorrect, got: %d, want: %d", len(players), 1)
+	}
+
+	if players[0].user.Username != "dieder" {
+		t.Errorf("First decliner name was incorrect, got: %s, want: %s", players[0].user.Username, "dieder")
 	}
 }
 
