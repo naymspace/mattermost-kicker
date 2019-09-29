@@ -154,7 +154,8 @@ endif
 .PHONY: test
 test: webapp/.npminstall
 ifneq ($(HAS_SERVER),)
-	$(GO) test -v $(GO_TEST_FLAGS) ./server/...
+	@# Added -count=1 to disable cached tests when making the project
+	$(GO) test -v -count=1 $(GO_TEST_FLAGS) ./server/...
 endif
 ifneq ($(HAS_WEBAPP),)
 	cd webapp && $(NPM) run fix && $(NPM) run test;

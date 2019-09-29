@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -27,7 +26,8 @@ const (
 	paramMaxMinute       = 60
 )
 
-type player struct {
+// Player is the interface between Mattermost Users and a Kicker game
+type Player struct {
 	user      *model.User
 	wantLevel int
 }
@@ -54,7 +54,7 @@ type KickerPlugin struct {
 	channelID string
 	rootID    string
 
-	participants []player
+	participants []Player
 	siteURL      string
 }
 
@@ -120,7 +120,7 @@ func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
 	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, player{
+	p.participants = append(p.participants, Player{
 		user:      user,
 		wantLevel: wantLevelParticipant,
 	})
@@ -138,7 +138,7 @@ func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) 
 	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
 
 	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, player{
+	p.participants = append(p.participants, Player{
 		user:      user,
 		wantLevel: wantLevelVolunteer,
 	})
@@ -194,7 +194,7 @@ func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (p *KickerPlugin) removeParticipantByID(id string) {
-	var participants []player
+	var participants []Player
 	for _, participant := range p.participants {
 		if id != participant.user.Id {
 			participants = append(participants, participant)
@@ -260,7 +260,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	p.busy = true
 
 	// clear participants
-	p.participants = []player{}
+	p.participants = []Player{}
 
 	// set user, channel and root ID
 	p.userID = args.UserId
@@ -268,7 +268,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	p.rootID = args.RootId
 
 	// parse Args
-	parsedArgs, parseError := parseArgs(args.Command)
+	parsedArgs, parseError := ParseArgs(args.Command)
 	if parseError != nil {
 		p.busy = false
 		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: sassyResponseText}, nil
@@ -286,7 +286,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// create bot-post for ending the poll
 	createEndPollPost := func() {
-		chosenPlayer := p.choosePlayers()
+		chosenPlayer := p.ChoosePlayers()
 		// not enough player
 		if len(chosenPlayer) < playerCount {
 			p.API.CreatePost(&model.Post{
@@ -300,7 +300,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			return
 		}
 
-		message := "Es nehmen teil: " + p.joinPlayers(chosenPlayer)
+		message := "Es nehmen teil: " + JoinPlayerNames(chosenPlayer)
 
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
@@ -333,11 +333,12 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	}, nil
 }
 
-// TODO: DRY
-func (p *KickerPlugin) choosePlayers() []player {
-	var returnPlayer []player
-	participants := p.getParticipants()
-	volunteers := p.getVolunteers()
+// ChoosePlayers returns 4 random Player (if possible).
+// Participants are prefered over Volunteers.
+func (p *KickerPlugin) ChoosePlayers() []Player {
+	var returnPlayer []Player
+	participants := p.GetParticipants()
+	volunteers := p.GetVolunteers()
 
 	if len(participants)+len(volunteers) < playerCount {
 		// not enough players! return all that wanted to play
@@ -369,69 +370,6 @@ func (p *KickerPlugin) choosePlayers() []player {
 
 	}
 	return returnPlayer
-}
-
-func getEndTime(params ...int) time.Time {
-	// default values
-	hour, minute := 12, 0
-
-	if len(params) == 2 {
-		hour, minute = params[0], params[1]
-	}
-
-	if len(params) == 1 {
-		hour = params[0]
-	}
-	loc, _ := time.LoadLocation("Europe/Berlin")
-
-	n := time.Now()
-	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, loc).Add(time.Hour * time.Duration(hour)).Add(time.Minute * time.Duration(minute))
-}
-
-/*
-  parses given args
-  takes the first 3 arguments:
-  - the command "kicker" itself
-  - a given hour
-  - a given minute
-*/
-func parseArgs(args string) ([]int, *model.AppError) {
-	emptyParams := []int{}
-	str := strings.SplitN(args, " ", 3)
-
-	if len(str) == 3 {
-		i1, err1 := strconv.Atoi(str[1])
-		i2, err2 := strconv.Atoi(str[2])
-		if err1 != nil || err2 != nil {
-			return emptyParams, appError("Parsing failed", nil)
-		}
-		// Check for Limits
-		if i1 >= paramMaxHour || i1 < 0 {
-			return emptyParams, appError("Parsing failed", nil)
-		}
-		if i2 >= paramMaxMinute || i2 < 0 {
-			return emptyParams, appError("Parsing failed", nil)
-		}
-		return []int{
-			i1,
-			i2,
-		}, nil
-	}
-
-	if len(str) == 2 {
-		i1, err1 := strconv.Atoi(str[1])
-		if err1 != nil {
-			return emptyParams, appError("Parsing failed", nil)
-		}
-		if i1 >= paramMaxHour || i1 < 0 {
-			return emptyParams, appError("Parsing failed", nil)
-		}
-		return []int{
-			i1,
-		}, nil
-	}
-
-	return emptyParams, appError("Parsing failed", nil)
 }
 
 func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
@@ -470,8 +408,8 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 }
 
 func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
-	participants := p.getParticipants()
-	volunteers := p.getVolunteers()
+	participants := p.GetParticipants()
+	volunteers := p.GetVolunteers()
 
 	if len(participants) == 0 && len(volunteers) == 0 {
 		return nil
@@ -480,11 +418,11 @@ func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 	text := ""
 
 	if len(participants) > 0 {
-		text += "👍: " + p.joinPlayers(participants) + "\n"
+		text += "👍: " + JoinPlayerNames(participants) + "\n"
 	}
 
 	if len(volunteers) > 0 {
-		text += "👉: " + p.joinPlayers(volunteers) + "\n"
+		text += "👉: " + JoinPlayerNames(volunteers) + "\n"
 	}
 
 	return &model.SlackAttachment{
@@ -511,53 +449,24 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 	}}
 }
 
-func (p *KickerPlugin) getParticipants() []player {
-	var players []player
+// GetParticipants returns all Players with the "participant" want level
+func (p *KickerPlugin) GetParticipants() []Player {
+	return p.filterParticipantsByWantlevel(wantLevelParticipant)
+}
 
-	for index, element := range p.participants {
-		if element.wantLevel == wantLevelParticipant {
-			players = append(players, p.participants[index])
+// GetVolunteers returns all Players with the "volunteer" want level
+func (p *KickerPlugin) GetVolunteers() []Player {
+	return p.filterParticipantsByWantlevel(wantLevelVolunteer)
+}
+
+func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel int) []Player {
+	var players []Player
+
+	for _, player := range p.participants {
+		if player.wantLevel == wantLevel {
+			players = append(players, player)
 		}
 	}
 
 	return players
-}
-
-func (p *KickerPlugin) getVolunteers() []player {
-	var players []player
-
-	for index, element := range p.participants {
-		if element.wantLevel == wantLevelVolunteer {
-			players = append(players, p.participants[index])
-		}
-	}
-
-	return players
-}
-
-func (p *KickerPlugin) joinPlayers(players []player) string {
-	result := ""
-	for index, element := range players {
-		result += element.user.Username
-		if index+1 < len(players) {
-			result += ", "
-		}
-	}
-	return result
-}
-
-func appError(message string, err error) *model.AppError {
-	errorMessage := ""
-	if err != nil {
-		errorMessage = err.Error()
-	}
-	return model.NewAppError("Kicker Plugin", message, nil, errorMessage, http.StatusBadRequest)
-}
-
-// remove element from array
-// TODO: Move this to a utility-class
-// from https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang
-func remove(s []player, i int) []player {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
 }
