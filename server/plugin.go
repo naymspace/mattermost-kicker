@@ -15,21 +15,28 @@ import (
 	"github.com/mattermost/mattermost-server/plugin"
 )
 
+// WantLevel defines how urgent a Player wants to play
+type WantLevel int
+
 const (
-	trigger              = "kicker"
-	botUserName          = "kicker"
-	botDisplayName       = "kicker BOT"
-	playerCount          = 4
-	wantLevelParticipant = 1
-	wantLevelVolunteer   = 0
-	paramMaxHour         = 24
-	paramMaxMinute       = 60
+	trigger        = "kicker"
+	botUserName    = "kicker"
+	botDisplayName = "kicker BOT"
+	playerCount    = 4
+	paramMaxHour   = 24
+	paramMaxMinute = 60
+	// WLDecline means that this Player does not want to play
+	WLDecline WantLevel = -1
+	// WLVolunteer means that this Player wants to play only if there are not enough players
+	WLVolunteer WantLevel = 0
+	// WLParticipate means that this Player wants to play
+	WLParticipate WantLevel = 1
 )
 
 // Player is the interface between Mattermost Users and a Kicker game
 type Player struct {
 	user      *model.User
-	wantLevel int
+	wantLevel WantLevel
 }
 
 // KickerPlugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.
@@ -104,7 +111,7 @@ func (p *KickerPlugin) OnActivate() error {
 	p.router = mux.NewRouter()
 	p.router.HandleFunc("/participate", p.ParticipateHandler)
 	p.router.HandleFunc("/volunteer", p.VolunteerHandler)
-	p.router.HandleFunc("/delete-participation", p.DeleteParticipationHandler)
+	p.router.HandleFunc("/decline", p.DeclineHandler)
 	p.router.HandleFunc("/cancel-game", p.CancelGameHandler)
 
 	// initialize plugin
@@ -114,51 +121,49 @@ func (p *KickerPlugin) OnActivate() error {
 	return nil
 }
 
-// ParticipateHandler handles participation requests
-func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
+func (p *KickerPlugin) setUserWantLevel(userID string, wantLevel WantLevel) *model.AppError {
 	// get user info from Mattermost API
-	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
+	user, err := p.API.GetUser(userID)
+	if err != nil {
+		return appError("failed to get user data", err)
+	}
 
 	p.removeParticipantByID(user.Id)
 	p.participants = append(p.participants, Player{
 		user:      user,
-		wantLevel: wantLevelParticipant,
+		wantLevel: wantLevel,
 	})
 
 	p.updatePollPost()
 
+	return nil
+}
+
+func (p *KickerPlugin) handleParticipationRequest(w http.ResponseWriter, r *http.Request, wantLevel WantLevel) {
+	err := p.setUserWantLevel(r.Header.Get("Mattermost-User-Id"), wantLevel)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "{\"response\":\"Invalid User\"}\n")
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+}
+
+// ParticipateHandler handles participation requests
+func (p *KickerPlugin) ParticipateHandler(w http.ResponseWriter, r *http.Request) {
+	p.handleParticipationRequest(w, r, WLParticipate)
 }
 
 // VolunteerHandler handles volunteering requests
 func (p *KickerPlugin) VolunteerHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: DRY
-	// get user info from Mattermost API
-	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-
-	p.removeParticipantByID(user.Id)
-	p.participants = append(p.participants, Player{
-		user:      user,
-		wantLevel: wantLevelVolunteer,
-	})
-
-	p.updatePollPost()
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+	p.handleParticipationRequest(w, r, WLVolunteer)
 }
 
-// DeleteParticipationHandler handles deleting participation request
-func (p *KickerPlugin) DeleteParticipationHandler(w http.ResponseWriter, r *http.Request) {
-	user, _ := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-
-	p.removeParticipantByID(user.Id)
-
-	p.updatePollPost()
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "{\"response\":\"OK\"}\n")
+// DeclineHandler handles declining request
+func (p *KickerPlugin) DeclineHandler(w http.ResponseWriter, r *http.Request) {
+	p.handleParticipationRequest(w, r, WLDecline)
 }
 
 // CancelGameHandler handles canceling game requests
@@ -395,7 +400,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 		Name: "Och nö 👎",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
-			URL: fmt.Sprintf("%s/plugins/%s/delete-participation", p.siteURL, manifest.ID),
+			URL: fmt.Sprintf("%s/plugins/%s/decline", p.siteURL, manifest.ID),
 		},
 	})
 
@@ -410,8 +415,9 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 	participants := p.GetParticipants()
 	volunteers := p.GetVolunteers()
+	decliners := p.GetDecliners()
 
-	if len(participants) == 0 && len(volunteers) == 0 {
+	if len(participants) == 0 && len(volunteers) == 0 && len(decliners) == 0 {
 		return nil
 	}
 
@@ -423,6 +429,10 @@ func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 
 	if len(volunteers) > 0 {
 		text += "👉: " + JoinPlayerNames(volunteers) + "\n"
+	}
+
+	if len(decliners) > 0 {
+		text += "👎: " + JoinPlayerNames(decliners) + "\n"
 	}
 
 	return &model.SlackAttachment{
@@ -451,15 +461,20 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 
 // GetParticipants returns all Players with the "participant" want level
 func (p *KickerPlugin) GetParticipants() []Player {
-	return p.filterParticipantsByWantlevel(wantLevelParticipant)
+	return p.filterParticipantsByWantlevel(WLParticipate)
 }
 
 // GetVolunteers returns all Players with the "volunteer" want level
 func (p *KickerPlugin) GetVolunteers() []Player {
-	return p.filterParticipantsByWantlevel(wantLevelVolunteer)
+	return p.filterParticipantsByWantlevel(WLVolunteer)
 }
 
-func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel int) []Player {
+// GetDecliners returns all Players with the "decline" want level
+func (p *KickerPlugin) GetDecliners() []Player {
+	return p.filterParticipantsByWantlevel(WLDecline)
+}
+
+func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel WantLevel) []Player {
 	var players []Player
 
 	for _, player := range p.participants {
