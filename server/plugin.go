@@ -304,7 +304,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 			p.API.CreatePost(&model.Post{
 				UserId:    p.botUserID,
 				ChannelId: p.channelID,
-				Message:   "Nicht genug Spieler!",
+				Message:   "Quantität der Wettkämpfer insuffizient!",
 				RootId:    p.rootID,
 				Type:      model.POST_DEFAULT,
 			})
