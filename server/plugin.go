@@ -311,6 +311,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	// create bot-post for ending the poll
 	createEndPollPost := func() {
 		p.removePollPost()
+		p.removeCancelPost()
 
 		chosenPlayer := p.ChoosePlayers()
 		// not enough player
