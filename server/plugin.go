@@ -52,14 +52,15 @@ type KickerPlugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
-	enabled   bool
-	busy      bool
-	pollPost  *model.Post
-	endTime   time.Time
-	timer     *time.Timer
-	userID    string // user-ID of user who started a game
-	channelID string
-	rootID    string
+	enabled    bool
+	busy       bool
+	pollPost   *model.Post
+	cancelPost *model.Post
+	endTime    time.Time
+	timer      *time.Timer
+	userID     string // user-ID of user who started a game
+	channelID  string
+	rootID     string
 
 	participants []Player
 	siteURL      string
@@ -201,6 +202,7 @@ func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request)
 		})
 
 		p.removePollPost()
+		p.removeCancelPost()
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -224,6 +226,10 @@ func (p *KickerPlugin) updatePollPost() {
 
 func (p *KickerPlugin) removePollPost() {
 	p.API.DeletePost(p.pollPost.Id)
+}
+
+func (p *KickerPlugin) removeCancelPost() {
+	p.API.DeleteEphemeralPost(p.userID, p.cancelPost.Id)
 }
 
 // OnDeactivate unregisters the command
@@ -346,10 +352,20 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	model.ParseSlackAttachment(post, p.buildSlackAttachments())
 	p.pollPost, _ = p.API.CreatePost(post)
 
+	// create bot-post for canceling the poll (only visible to poll creator)
+	cancelPost := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: p.channelID,
+		Message:   "",
+		RootId:    p.rootID,
+		Type:      model.POST_DEFAULT,
+	}
+	model.ParseSlackAttachment(cancelPost, p.buildCancelGameAttachment())
+	p.cancelPost = p.API.SendEphemeralPost(p.userID, cancelPost)
+
 	return &model.CommandResponse{
 		ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL,
 		Text:         "",
-		Attachments:  p.buildCancelGameAttachment(),
 	}, nil
 }
 
