@@ -199,6 +199,8 @@ func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request)
 			RootId:    p.rootID,
 			Type:      model.POST_DEFAULT,
 		})
+
+		p.removePollPost()
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -218,6 +220,10 @@ func (p *KickerPlugin) removeParticipantByID(id string) {
 func (p *KickerPlugin) updatePollPost() {
 	model.ParseSlackAttachment(p.pollPost, p.buildSlackAttachments())
 	p.pollPost, _ = p.API.UpdatePost(p.pollPost)
+}
+
+func (p *KickerPlugin) removePollPost() {
+	p.API.DeletePost(p.pollPost.Id)
 }
 
 // OnDeactivate unregisters the command
@@ -298,6 +304,8 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// create bot-post for ending the poll
 	createEndPollPost := func() {
+		p.removePollPost()
+
 		chosenPlayer := p.ChoosePlayers()
 		// not enough player
 		if len(chosenPlayer) < playerCount {
