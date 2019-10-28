@@ -9,6 +9,7 @@ import (
 var horst = &Player{
 	user: &model.User{
 		Username: "horst",
+		Id:       "1",
 	},
 	wantLevel: WLParticipate,
 }
@@ -16,6 +17,7 @@ var horst = &Player{
 var baerbel = &Player{
 	user: &model.User{
 		Username: "bärbel",
+		Id:       "2",
 	},
 	wantLevel: WLParticipate,
 }
@@ -23,6 +25,7 @@ var baerbel = &Player{
 var etienne = &Player{
 	user: &model.User{
 		Username: "etienne",
+		Id:       "3",
 	},
 	wantLevel: WLParticipate,
 }
@@ -30,6 +33,7 @@ var etienne = &Player{
 var ingebork = &Player{
 	user: &model.User{
 		Username: "ingebork",
+		Id:       "4",
 	},
 	wantLevel: WLParticipate,
 }
@@ -37,6 +41,7 @@ var ingebork = &Player{
 var kay = &Player{
 	user: &model.User{
 		Username: "kay",
+		Id:       "5",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -44,6 +49,7 @@ var kay = &Player{
 var oke = &Player{
 	user: &model.User{
 		Username: "oke",
+		Id:       "6",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -51,6 +57,7 @@ var oke = &Player{
 var mable = &Player{
 	user: &model.User{
 		Username: "mable",
+		Id:       "7",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -58,6 +65,7 @@ var mable = &Player{
 var uwe = &Player{
 	user: &model.User{
 		Username: "uwe",
+		Id:       "8",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -65,6 +73,7 @@ var uwe = &Player{
 var dieder = &Player{
 	user: &model.User{
 		Username: "dieder",
+		Id:       "9",
 	},
 	wantLevel: WLDecline,
 }
@@ -348,6 +357,21 @@ func TestFilterParticipantsByWantLevel(t *testing.T) {
 	}
 	if len(p.filterParticipantsByWantlevel(WLVolunteer)) != 4 {
 		t.Errorf("filterParticipantsByWantlevel return unexpected results")
+	}
+}
+
+func TestRemoveParticipantByID(t *testing.T) {
+	players := []Player{*horst, *baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork}
+	p := SetupTestKickerPlugin(players)
+
+	p.removeParticipantByID("1")
+	if len(p.participants) != 8 {
+		t.Errorf("removeParticipantByID return unexpected results")
+	}
+
+	p.removeParticipantByID("8")
+	if len(p.participants) != 7 {
+		t.Errorf("removeParticipantByID return unexpected results")
 	}
 }
 
