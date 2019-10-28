@@ -336,6 +336,21 @@ func TestChoosePlayers(t *testing.T) {
 	}
 }
 
+func TestFilterParticipantsByWantLevel(t *testing.T) {
+	players := []Player{*horst, *baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork}
+	p := SetupTestKickerPlugin(players)
+
+	if len(p.filterParticipantsByWantlevel(WLDecline)) != 1 {
+		t.Errorf("filterParticipantsByWantlevel return unexpected results")
+	}
+	if len(p.filterParticipantsByWantlevel(WLParticipate)) != 4 {
+		t.Errorf("filterParticipantsByWantlevel return unexpected results")
+	}
+	if len(p.filterParticipantsByWantlevel(WLVolunteer)) != 4 {
+		t.Errorf("filterParticipantsByWantlevel return unexpected results")
+	}
+}
+
 // compares Player-slices, ignores order
 func playerEqual(a, b []Player) bool {
 	if len(a) != len(b) {
