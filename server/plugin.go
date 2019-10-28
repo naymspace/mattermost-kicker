@@ -314,7 +314,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 
 	// Set timerWarning if we have at least 15 minutes before starting
 	if warnDur > 0 {
-		p.timerWarning = time.AfterFunc(warnDur, p.CreateEndPollPost)
+		p.timerWarning = time.AfterFunc(warnDur, p.CheckEnoughPlayer)
 	}
 
 	// delay execution until endTime is reached
@@ -528,7 +528,7 @@ func (p *KickerPlugin) CreateEndPollPost() {
 	p.busy = false
 }
 
-// CheckEnoughPlayer creates a post, if we do not have enough players.
+// CheckEnoughPlayer creates a warning post, if we do not have enough players.
 func (p *KickerPlugin) CheckEnoughPlayer() {
 	players := p.ChoosePlayers()
 
@@ -536,7 +536,7 @@ func (p *KickerPlugin) CheckEnoughPlayer() {
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
 			ChannelId: p.channelID,
-			Message:   fmt.Sprintf("Noch nicht genug Spieler. Es müssen mindestens %v angemeldet sein", playerCount),
+			Message:   "Kickerrektrutenanzahl desolat. 15 Minuten bis zum Meltdown.",
 			RootId:    p.rootID,
 			Type:      model.POST_DEFAULT,
 		})
