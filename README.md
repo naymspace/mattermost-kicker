@@ -1,10 +1,73 @@
-# Prerequisites
+# mattermost-kicker
 
-You will need `npm` and `curl`.
+A plugin for [Mattermost](https://mattermost.com/) for kicker matches, creating a poll for quick and fair player picking.
 
-# Go
+## Getting Started
 
-You will need to [install Go](https://golang.org/doc/install). When using a Debian-based system, there may be a package `golang`, which cannot be used, as the Go version is too old.
+### Prerequisites
+
+The Mattermost server must be version 5.12 or newer. For development, you can use a Mattermost server running in a Docker container (see below).
+
+On your development machine will need a current `npm` and any `curl` version.
+
+You will also need to [install Go](https://golang.org/doc/install). When using a Debian-based system, there may be a package `golang`, which cannot be used, as the Go version is too old.
+
+### Installing
+
+[Install Go](https://golang.org/doc/install) if not done already.
+
+You will need a locally running Mattermost. See the [installation instructions](https://mattermost.com/download/).
+
+For example using Docker:
+
+```shell
+docker run --name mattermost-preview -d --publish 8065:8065 mattermost/mattermost-preview
+```
+
+### Configuration
+
+Wait a few seconds after starting Mattermost, then visit the start page: http://localhost:8065/
+
+Register an account (email does not matter, no mails are sent out), then create a team.
+
+Open the [System Console → Web Server](http://localhost:8065/admin_console/environment/web_server).
+
+Enter `http://localhost:8065` into the „Site URL“ field, and hit the „Save“ buttons. This is **required** to make the plugin work.
+
+### Environment variables
+
+- **MM_SERVICESETTINGS_SITEURL** [String] – Mattermost server URL, used for deployment; e.g. `http://localhost:8065`
+- **MM_ADMIN_USERNAME** [String] – username for deployment (must have admin privileges)
+- **MM_ADMIN_PASSWORD** [String] – password for deployment
+
+## Running and Deployment
+
+The plugin is automatically started and stopped with Mattermost.
+
+It has to be deployed first to Mattermost, see below.
+
+The Mattermost server Docker container can be started and stopped normally:
+
+```
+docker start mattermost-preview
+docker stop mattermost-preview
+```
+
+### Access application
+
+```
+http://localhost:8065
+```
+
+In any channel, type `/kicker` to see the plugin's `kicker` command and the available options.
+
+Example: to start a kicker match at 12:00, use
+
+```
+/kicker 12 00
+```
+
+### Building and Deployment
 
 Build the project by running this command while in the project's root folder:
 
@@ -14,23 +77,9 @@ make
 
 This will create an archive containing the Mattermost plugin, named i.e. `dist/com.naymspace.mattermost-kicker-0.1.0.tar.gz`.
 
-# Mattermost
+You can deploy the plugin manually or (for development) with the `Makefile`.
 
-You will need a locally running Mattermost. See the [installation instructions](https://mattermost.com/download/).
-
-For example using Docker:
-
-```shell
-docker run --rm --name mattermost-preview -d --publish 8065:8065 mattermost/mattermost-preview
-```
-
-Wait a few seconds, then visit the Mattermost start page: http://localhost:8065/
-
-Register an account (email does not matter, no mails are sent out), then create a team.
-
-Open the [System Console → Web Server](http://localhost:8065/admin_console/environment/web_server).
-
-Enter `http://localhost:8065` into the „Site URL“ field, and hit the „Save“ buttons. This is **required** to make the plugin work.
+#### Manual deployment
 
 Open the [System Console → Plugin Management](http://localhost:8065/admin_console/plugins/plugin_management).
 
@@ -38,84 +87,30 @@ Go to „Upload Plugin“ and upload the built Mattermost plugin archive, click 
 
 Scroll down to „Kicker Plugin by naymspace“ and click on „Enable“.
 
-# Usage
 
-In any channel, issue a command like this:
+#### Automated deployment
 
-```
-/kicker 12 00
-```
+This can only be done in the development environment.
 
-# Plugin Starter Template ![CircleCI branch](https://img.shields.io/circleci/project/github/mattermost/mattermost-plugin-starter-template/master.svg)
-
-This plugin serves as a starting point for writing a Mattermost plugin. Feel free to base your own plugin off this repository.
-
-To learn more about plugins, see [our plugin documentation](https://developers.mattermost.com/extend/plugins/).
-
-## Getting Started
-Use GitHub's template feature to make a copy of this repository by clicking the "Use this template" button then clone outside of `$GOPATH`.
-
-Alternatively shallow clone the repository to a directory outside of `$GOPATH` matching your plugin name:
-```
-git clone --depth 1 https://github.com/mattermost/mattermost-plugin-starter-template com.example.my-plugin
-```
-
-Note that this project uses [Go modules](https://github.com/golang/go/wiki/Modules). Be sure to locate the project outside of `$GOPATH`, or allow the use of Go modules within your `$GOPATH` with an `export GO111MODULE=on`.
-
-Edit `plugin.json` with your `id`, `name`, and `description`:
-```
-{
-    "id": "com.example.my-plugin",
-    "name": "My Plugin",
-    "description": "A plugin to enhance Mattermost."
-}
-```
-
-Build your plugin:
-```
-make
-```
-
-This will produce a single plugin file (with support for multiple architectures) for upload to your Mattermost server:
+After setting up the required environment variables (see above), use
 
 ```
-dist/com.example.my-plugin.tar.gz
-```
-
-There is a build target to automate deploying and enabling the plugin to your server, but it requires configuration and [http](https://httpie.org/) to be installed:
-```
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_USERNAME=admin
-export MM_ADMIN_PASSWORD=password
 make deploy
 ```
 
-Alternatively, if you are running your `mattermost-server` out of a sibling directory by the same name, use the `deploy` target alone to  unpack the files into the right directory. You will need to restart your server and manually enable your plugin.
+## Automatic tests
 
-In production, deploy and upload your plugin via the [System Console](https://about.mattermost.com/default-plugin-uploads).
+Tests are automatically run when executing `make`.
 
-## Q&A
+You can also run the tests without compiling the plugin:
 
-### How do I make a server-only or web app-only plugin?
-
-Simply delete the `server` or `webapp` folders and remove the corresponding sections from `plugin.json`. The build scripts will skip the missing portions automatically.
-
-### How do I include assets in the plugin bundle?
-
-Place them into the `assets` directory. To use an asset at runtime, build the path to your asset and open as a regular file:
-
-```go
-bundlePath, err := p.API.GetBundlePath()
-if err != nil {
-    return errors.Wrap(err, "failed to get bundle path")
-}
-
-profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile_image.png"))
-if err != nil {
-    return errors.Wrap(err, "failed to read profile image")
-}
-
-if appErr := p.API.SetProfileImage(userID, profileImage); appErr != nil {
-    return errors.Wrap(err, "failed to set profile image")
-}
 ```
+make test
+```
+
+## Important dependencies and documentation
+
+- [mattermost plugin API documentation](https://developers.mattermost.com/extend/plugins/server/reference/#API)
+- [mattermost plugin model documentation](https://godoc.org/github.com/mattermost/mattermost-server/model)
+- [Mattermost API](https://api.mattermost.com/)
+- [Mattermost interactive messages examples](https://docs.mattermost.com/developer/interactive-messages.html)
