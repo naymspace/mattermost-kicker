@@ -25,6 +25,8 @@ const (
 	playerCount    = 4
 	paramMaxHour   = 24
 	paramMaxMinute = 60
+	// warnDuration is used by a timer to notify, if there are not enough players
+	warnDuration = time.Minute * time.Duration(15) // 15 Minutes
 	// WLDecline means that this Player does not want to play
 	WLDecline WantLevel = -1
 	// WLVolunteer means that this Player wants to play only if there are not enough players
@@ -52,15 +54,16 @@ type KickerPlugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 
-	enabled    bool
-	busy       bool
-	pollPost   *model.Post
-	cancelPost *model.Post
-	endTime    time.Time
-	timer      *time.Timer
-	userID     string // user-ID of user who started a game
-	channelID  string
-	rootID     string
+	enabled      bool
+	busy         bool
+	pollPost     *model.Post
+	cancelPost   *model.Post
+	endTime      time.Time
+	timer        *time.Timer
+	timerWarning *time.Timer
+	userID       string // user-ID of user who started a game
+	channelID    string
+	rootID       string
 
 	participants []Player
 	siteURL      string
@@ -301,6 +304,7 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	p.endTime = getEndTime(parsedArgs...)
 	duration := p.endTime.Sub(time.Now().In(loc))
+	warnDur := duration - warnDuration
 
 	// if invalid, return sassy response
 	if duration <= 0 {
@@ -308,39 +312,13 @@ func (p *KickerPlugin) executeCommand(args *model.CommandArgs) (*model.CommandRe
 		return &model.CommandResponse{ResponseType: model.COMMAND_RESPONSE_TYPE_EPHEMERAL, Text: sassyResponseText}, nil
 	}
 
-	// create bot-post for ending the poll
-	createEndPollPost := func() {
-		p.removePollPost()
-		p.removeCancelPost()
-
-		chosenPlayer := p.ChoosePlayers()
-		// not enough player
-		if len(chosenPlayer) < playerCount {
-			p.API.CreatePost(&model.Post{
-				UserId:    p.botUserID,
-				ChannelId: p.channelID,
-				Message:   "Quantität der Wettkämpfer insuffizient!",
-				RootId:    p.rootID,
-				Type:      model.POST_DEFAULT,
-			})
-			p.busy = false
-			return
-		}
-
-		message := "Es nehmen teil: " + JoinPlayerNames(chosenPlayer)
-
-		p.API.CreatePost(&model.Post{
-			UserId:    p.botUserID,
-			ChannelId: p.channelID,
-			Message:   message,
-			RootId:    p.rootID,
-			Type:      model.POST_DEFAULT,
-		})
-
-		p.busy = false
+	// Set timerWarning if we have at least 15 minutes before starting
+	if warnDur > 0 {
+		p.timerWarning = time.AfterFunc(warnDur, p.CheckEnoughPlayer)
 	}
+
 	// delay execution until endTime is reached
-	p.timer = time.AfterFunc(duration, createEndPollPost)
+	p.timer = time.AfterFunc(duration, p.CreateEndPollPost)
 
 	// create bot-post for initiating the poll
 	post := &model.Post{
@@ -516,4 +494,51 @@ func (p *KickerPlugin) filterParticipantsByWantlevel(wantLevel WantLevel) []Play
 	}
 
 	return players
+}
+
+// CreateEndPollPost creates a post with the result of selected players
+func (p *KickerPlugin) CreateEndPollPost() {
+	p.removePollPost()
+	p.removeCancelPost()
+
+	chosenPlayer := p.ChoosePlayers()
+	// not enough player
+	if len(chosenPlayer) < playerCount {
+		p.API.CreatePost(&model.Post{
+			UserId:    p.botUserID,
+			ChannelId: p.channelID,
+			Message:   "Quantität der Wettkämpfer insuffizient!",
+			RootId:    p.rootID,
+			Type:      model.POST_DEFAULT,
+		})
+		p.busy = false
+		return
+	}
+
+	message := "Es nehmen teil: " + JoinPlayerNames(chosenPlayer)
+
+	p.API.CreatePost(&model.Post{
+		UserId:    p.botUserID,
+		ChannelId: p.channelID,
+		Message:   message,
+		RootId:    p.rootID,
+		Type:      model.POST_DEFAULT,
+	})
+
+	p.busy = false
+}
+
+// CheckEnoughPlayer creates a warning post, if we do not have enough players.
+func (p *KickerPlugin) CheckEnoughPlayer() {
+	players := p.ChoosePlayers()
+
+	if len(players) < playerCount {
+		p.API.CreatePost(&model.Post{
+			UserId:    p.botUserID,
+			ChannelId: p.channelID,
+			Message:   "Kickerrektrutenanzahl desolat. 15 Minuten bis zum Meltdown.",
+			RootId:    p.rootID,
+			Type:      model.POST_DEFAULT,
+		})
+	}
 }
