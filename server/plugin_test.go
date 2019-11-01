@@ -349,29 +349,55 @@ func TestFilterParticipantsByWantLevel(t *testing.T) {
 	players := []Player{*horst, *baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork}
 	p := SetupTestKickerPlugin(players)
 
-	if len(p.filterParticipantsByWantlevel(WLDecline)) != 1 {
-		t.Errorf("filterParticipantsByWantlevel return unexpected results")
+	resultTables := []struct {
+		Level  WantLevel
+		Result []Player
+	}{
+		{
+			Level:  WLParticipate,
+			Result: []Player{*horst, *baerbel, *etienne, *ingebork},
+		},
+		{
+			Level:  WLVolunteer,
+			Result: []Player{*kay, *oke, *mable, *uwe},
+		},
+		{
+			Level:  WLDecline,
+			Result: []Player{*dieder},
+		},
 	}
-	if len(p.filterParticipantsByWantlevel(WLParticipate)) != 4 {
-		t.Errorf("filterParticipantsByWantlevel return unexpected results")
-	}
-	if len(p.filterParticipantsByWantlevel(WLVolunteer)) != 4 {
-		t.Errorf("filterParticipantsByWantlevel return unexpected results")
+
+	for _, table := range resultTables {
+		result := p.filterParticipantsByWantlevel(table.Level)
+		if !playerEqual(result, table.Result) {
+			t.Errorf("filterParticipantsByWantlevel returns unexpected results for WantLevel: '%d', should be: '%s', was: '%s'", table.Level, JoinPlayerNames(table.Result), JoinPlayerNames(result))
+		}
 	}
 }
 
 func TestRemoveParticipantByID(t *testing.T) {
 	players := []Player{*horst, *baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork}
-	p := SetupTestKickerPlugin(players)
 
-	p.removeParticipantByID("1")
-	if len(p.participants) != 8 {
-		t.Errorf("removeParticipantByID return unexpected results")
+	resultTables := []struct {
+		ID     string
+		Result []Player
+	}{
+		{
+			ID:     "1",
+			Result: []Player{*baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork},
+		},
+		{
+			ID:     "8",
+			Result: []Player{*horst, *baerbel, *kay, *oke, *mable, *etienne, *dieder, *ingebork},
+		},
 	}
 
-	p.removeParticipantByID("8")
-	if len(p.participants) != 7 {
-		t.Errorf("removeParticipantByID return unexpected results")
+	for _, table := range resultTables {
+		p := SetupTestKickerPlugin(players)
+		p.removeParticipantByID(table.ID)
+		if !playerEqual(p.participants, table.Result) {
+			t.Errorf("removeParticipantByID returns unexpected results for ID: '%s', should be: '%s', was: '%s'", table.ID, JoinPlayerNames(table.Result), JoinPlayerNames(p.participants))
+		}
 	}
 }
 
