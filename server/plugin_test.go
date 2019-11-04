@@ -9,6 +9,7 @@ import (
 var horst = &Player{
 	user: &model.User{
 		Username: "horst",
+		Id:       "1",
 	},
 	wantLevel: WLParticipate,
 }
@@ -16,6 +17,7 @@ var horst = &Player{
 var baerbel = &Player{
 	user: &model.User{
 		Username: "bärbel",
+		Id:       "2",
 	},
 	wantLevel: WLParticipate,
 }
@@ -23,6 +25,7 @@ var baerbel = &Player{
 var etienne = &Player{
 	user: &model.User{
 		Username: "etienne",
+		Id:       "3",
 	},
 	wantLevel: WLParticipate,
 }
@@ -30,6 +33,7 @@ var etienne = &Player{
 var ingebork = &Player{
 	user: &model.User{
 		Username: "ingebork",
+		Id:       "4",
 	},
 	wantLevel: WLParticipate,
 }
@@ -37,6 +41,7 @@ var ingebork = &Player{
 var kay = &Player{
 	user: &model.User{
 		Username: "kay",
+		Id:       "5",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -44,6 +49,7 @@ var kay = &Player{
 var oke = &Player{
 	user: &model.User{
 		Username: "oke",
+		Id:       "6",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -51,6 +57,7 @@ var oke = &Player{
 var mable = &Player{
 	user: &model.User{
 		Username: "mable",
+		Id:       "7",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -58,6 +65,7 @@ var mable = &Player{
 var uwe = &Player{
 	user: &model.User{
 		Username: "uwe",
+		Id:       "8",
 	},
 	wantLevel: WLVolunteer,
 }
@@ -65,6 +73,7 @@ var uwe = &Player{
 var dieder = &Player{
 	user: &model.User{
 		Username: "dieder",
+		Id:       "9",
 	},
 	wantLevel: WLDecline,
 }
@@ -332,6 +341,62 @@ func TestChoosePlayers(t *testing.T) {
 		}
 		if !oneResultOccured {
 			t.Errorf("ChoosePlayers returns unexpected results")
+		}
+	}
+}
+
+func TestFilterParticipantsByWantLevel(t *testing.T) {
+	players := []Player{*horst, *baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork}
+	p := SetupTestKickerPlugin(players)
+
+	resultTables := []struct {
+		Level  WantLevel
+		Result []Player
+	}{
+		{
+			Level:  WLParticipate,
+			Result: []Player{*horst, *baerbel, *etienne, *ingebork},
+		},
+		{
+			Level:  WLVolunteer,
+			Result: []Player{*kay, *oke, *mable, *uwe},
+		},
+		{
+			Level:  WLDecline,
+			Result: []Player{*dieder},
+		},
+	}
+
+	for _, table := range resultTables {
+		result := p.filterParticipantsByWantlevel(table.Level)
+		if !playerEqual(result, table.Result) {
+			t.Errorf("filterParticipantsByWantlevel returns unexpected results for WantLevel: '%d', should be: '%s', was: '%s'", table.Level, JoinPlayerNames(table.Result), JoinPlayerNames(result))
+		}
+	}
+}
+
+func TestRemoveParticipantByID(t *testing.T) {
+	players := []Player{*horst, *baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork}
+
+	resultTables := []struct {
+		ID     string
+		Result []Player
+	}{
+		{
+			ID:     "1",
+			Result: []Player{*baerbel, *kay, *oke, *mable, *uwe, *etienne, *dieder, *ingebork},
+		},
+		{
+			ID:     "8",
+			Result: []Player{*horst, *baerbel, *kay, *oke, *mable, *etienne, *dieder, *ingebork},
+		},
+	}
+
+	for _, table := range resultTables {
+		p := SetupTestKickerPlugin(players)
+		p.removeParticipantByID(table.ID)
+		if !playerEqual(p.participants, table.Result) {
+			t.Errorf("removeParticipantByID returns unexpected results for ID: '%s', should be: '%s', was: '%s'", table.ID, JoinPlayerNames(table.Result), JoinPlayerNames(p.participants))
 		}
 	}
 }
