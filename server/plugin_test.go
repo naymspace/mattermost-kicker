@@ -248,7 +248,7 @@ func TestParseArgs(t *testing.T) {
 	}{
 		{
 			Args:   "/kicker",
-			Result: []int{},
+			Result: []int{12},
 		},
 		{
 			Args:   "/kicker 12",
