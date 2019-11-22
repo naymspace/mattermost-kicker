@@ -22,7 +22,7 @@ Returns the parsed hour and minute as integers on success.
 func ParseArgs(args string) ([]int, *model.AppError) {
 	emptyParams := []int{}
 	defaultParams := []int{12}
-	str := strings.SplitN(args, " ", 3)
+	str := strings.SplitN(strings.TrimSpace(args), " ", 3)
 
 	if len(str) == 3 {
 		i1, err1 := strconv.Atoi(str[1])
