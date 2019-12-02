@@ -2,6 +2,13 @@
 
 A plugin for [Mattermost](https://mattermost.com/) for kicker matches, creating a poll for quick and fair player picking.
 
+## Releases
+
+For a quick-start you can directly download the lastest release here:  
+[Release 1.1.1](releases/com.naymspace.mattermost-kicker-1.1.1.tar.gz)  
+
+You can also build it yourself:
+
 ## Getting Started
 
 ### Prerequisites
