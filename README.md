@@ -5,7 +5,7 @@ A plugin for [Mattermost](https://mattermost.com/) for kicker matches, creating 
 ## Releases
 
 For a quick-start you can directly download the lastest release here:  
-[Release 1.1.1](releases/com.naymspace.mattermost-kicker-1.1.1.tar.gz)  
+[Release 1.1.1](releases/com.naymspace.mattermost-kicker-1.1.1.tar.gz)
 
 You can also build it yourself:
 
@@ -43,9 +43,9 @@ Enter `http://localhost:8065` into the „Site URL“ field, and hit the „Save
 
 ### Environment variables
 
-- **MM_SERVICESETTINGS_SITEURL** [String] – Mattermost server URL, used for deployment; e.g. `http://localhost:8065`
-- **MM_ADMIN_USERNAME** [String] – username for deployment (must have admin privileges)
-- **MM_ADMIN_PASSWORD** [String] – password for deployment
+-   **MM_SERVICESETTINGS_SITEURL** [String] – Mattermost server URL, used for deployment; e.g. `http://localhost:8065`
+-   **MM_ADMIN_USERNAME** [String] – username for deployment (must have admin privileges)
+-   **MM_ADMIN_PASSWORD** [String] – password for deployment
 
 ## Running and Deployment
 
@@ -94,7 +94,6 @@ Go to „Upload Plugin“ and upload the built Mattermost plugin archive, click 
 
 Scroll down to „Kicker Plugin by naymspace“ and click on „Enable“.
 
-
 #### Automated deployment
 
 This can only be done in the development environment.
@@ -117,7 +116,7 @@ make test
 
 ## Important dependencies and documentation
 
-- [mattermost plugin API documentation](https://developers.mattermost.com/extend/plugins/server/reference/#API)
-- [mattermost plugin model documentation](https://godoc.org/github.com/mattermost/mattermost-server/model)
-- [Mattermost API](https://api.mattermost.com/)
-- [Mattermost interactive messages examples](https://docs.mattermost.com/developer/interactive-messages.html)
+-   [mattermost plugin API documentation](https://developers.mattermost.com/extend/plugins/server/reference/#API)
+-   [mattermost plugin model documentation](https://godoc.org/github.com/mattermost/mattermost-server/model)
+-   [Mattermost API](https://api.mattermost.com/)
+-   [Mattermost interactive messages examples](https://docs.mattermost.com/developer/interactive-messages.html)
