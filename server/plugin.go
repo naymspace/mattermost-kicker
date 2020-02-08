@@ -194,6 +194,7 @@ func (p *KickerPlugin) CancelGameHandler(w http.ResponseWriter, r *http.Request)
 
 	if p.busy {
 		p.timer.Stop()
+		p.timerWarning.Stop()
 		p.busy = false
 
 		p.API.CreatePost(&model.Post{
