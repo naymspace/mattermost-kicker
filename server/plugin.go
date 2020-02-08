@@ -20,8 +20,8 @@ type WantLevel int
 
 const (
 	trigger        = "kicker"
-	botUserName    = "kicker"
-	botDisplayName = "kicker BOT"
+	botUserName    = "k̃̐̈̂҉̖̖̯̭͍̖i̾ͥc͋ke̺͉̻̰͆̉̀͊r̿͝ͅ"
+	botDisplayName = "k̃̐̈̂҉̖̖̯̭͍̖i̾ͥc͋ke̺͉̻̰͆̉̀͊r̿͝ͅ"
 	playerCount    = 4
 	paramMaxHour   = 24
 	paramMaxMinute = 60
@@ -80,11 +80,11 @@ func (p *KickerPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *ht
 func (p *KickerPlugin) OnActivate() error {
 	err := p.API.RegisterCommand(&model.Command{
 		Trigger:          trigger,
-		Description:      "TODO: describe me",
+		Description:      "",
 		DisplayName:      botDisplayName,
 		AutoComplete:     true,
-		AutoCompleteDesc: "Startet den " + botDisplayName + ", e.g. /" + trigger + " 12 30",
-		AutoCompleteHint: "[hour] [minute]",
+		AutoCompleteDesc: "S͈̩͚t̼̲̟̱̟̮a̖͖r̲͍t͈̜̻̩e̩ͅt̯ ̱͇̹d͎̘e͇̗n͉̰ ̲̜̬̞̜͎" + botDisplayName + ", e̖̙̫.̤̭̼̙̟͔g̙̠̜̰̪͇̭.͙͇̼̗ /" + trigger + " -̝̟̼̖̻͍2̟14̼̱7̤̣̜ͅ4͍͍̮ͅ8̰͉͇̜̟̱3̳͇̪64̯̫̦͇͓8͉",
+		AutoCompleteHint: "K̬̻̼̩̙I͎LL̞̮͙ ̭̱̟͕̖̘͇H̱̯Ṷ̪̝ͅM̠͈̠AN̩͇S̭̪̞̮",
 	})
 	if err != nil {
 		return err
@@ -391,7 +391,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
-		Name: "Bin dabei 👍",
+		Name: "O̤̅ͯ̅̉K̥͙̮͌ͧ̐͋̂",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("%s/plugins/%s/participate", p.siteURL, manifest.ID),
@@ -399,7 +399,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 	})
 
 	actions = append(actions, &model.PostAction{
-		Name: "Wenn sich sonst keiner traut 👉",
+		Name: "N0̬͉̞̮̮T̳̼̮̙̙̺ ̻̺̹̬B̭̗̗̮1̻̗̘̞n4̤̳̬̣r̦͖̲Y͙",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("%s/plugins/%s/volunteer", p.siteURL, manifest.ID),
@@ -407,7 +407,7 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 	})
 
 	actions = append(actions, &model.PostAction{
-		Name: "Och nö 👎",
+		Name: "C͔on͕̥̠̜͈5̜͙Ṷ̺̭m̩̖͙̥̝̻͓e͇͈̱̰ ͍̞͎̘͈S̟̥̩͕0̞uL",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("%s/plugins/%s/decline", p.siteURL, manifest.ID),
@@ -416,8 +416,8 @@ func (p *KickerPlugin) buildSlackAttachments() []*model.SlackAttachment {
 
 	return []*model.SlackAttachment{{
 		AuthorName: botDisplayName,
-		Title:      "Der " + botDisplayName + " hat euch herausgefordert! Wer möchte teilnehmen?",
-		Text:       fmt.Sprintf("Kickern startet um %02d:%02d Uhr.", p.endTime.Hour(), p.endTime.Minute()),
+		Title:      "D̻̻̞̖͖̝̘e̝͔̖͍̤̩r̖̻̞̱̞̬ " + botDisplayName + " h̺̮4̼̣͇t͚ ͎e͓u̼̫̻͍̝̤̫ch͕̝͎̰͇ g̬͔̲̠̖̻E͎͓f̼͚u̫̙͕̝̮ͅn̘̟d̥̫̤e͔̯n̥̯͉̻!̲͍͕̦̺͈ͅ ̲̹̮͎d̮̪0̜̞̰0M͎̩̭̺̻ ͙͓͔̹ḥ̪Ṳ̠̘m̰̦̠4̭̟͕̤̺n1͈͚̙t̘͎y̞̞͈͓̫̯̱!͎̤͈̣͔",
+		Text:       fmt.Sprintf("E̻̤̗u̳̣r̭e̳̥͓̘̦͈ We̲̥̯̼̣l͎̯t͎̹͚ ̫̠̱̣e̤̜ͅnd͓̬̘̰ͅe̝̰̤̻̣̹̱t̹̺͇̱̘̹ ͇̞ṳ̮̰͍m̜ %02d:%02d G̲̥̭̳̼̗̩T̰M̘̯̖͓̺̠+̮̜0̯̖͖̹͚̳1", p.endTime.Hour(), p.endTime.Minute()),
 		Actions:    actions,
 	}, p.buildParticipantsAttachment()}
 }
@@ -434,15 +434,15 @@ func (p *KickerPlugin) buildParticipantsAttachment() *model.SlackAttachment {
 	text := ""
 
 	if len(participants) > 0 {
-		text += "👍: " + JoinPlayerNames(participants) + "\n"
+		text += "🤬̭̭̻̪͚̣��͙: " + JoinPlayerNames(participants) + "\n"
 	}
 
 	if len(volunteers) > 0 {
-		text += "👉: " + JoinPlayerNames(volunteers) + "\n"
+		text += "�͚̤�͚̳̟̯̳̣💩̜̲͖: " + JoinPlayerNames(volunteers) + "\n"
 	}
 
 	if len(decliners) > 0 {
-		text += "👎: " + JoinPlayerNames(decliners) + "\n"
+		text += "�̹͇͉͙͎�̻͈̳☠̱̰̭ͅ: " + JoinPlayerNames(decliners) + "\n"
 	}
 
 	return &model.SlackAttachment{
@@ -454,7 +454,7 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 	actions := []*model.PostAction{}
 
 	actions = append(actions, &model.PostAction{
-		Name: "Stop Bot",
+		Name: "Y̫̙͕0̥̭͉͈͓u̥̯̮͕̩ ̪̣̘̬͔c͎̺4̖n͔͍͚͈'̫͔̬̭͇̬̲T̤̗̝͍̬̬ ͅs͓̩͓͓͍̙t͚̼̟̭̺0̝͇̝P̜̲̪̬̭͉ ṃ̗͎3̮",
 		Type: model.POST_ACTION_TYPE_BUTTON,
 		Integration: &model.PostActionIntegration{
 			URL: fmt.Sprintf("%s/plugins/%s/cancel-game", p.siteURL, manifest.ID),
@@ -463,8 +463,8 @@ func (p *KickerPlugin) buildCancelGameAttachment() []*model.SlackAttachment {
 
 	return []*model.SlackAttachment{{
 		AuthorName: botDisplayName,
-		Title:      "Der Kicker wurde gestartet.",
-		Text:       "Zum Stoppen kannst du diesen Button benutzen:",
+		Title:      "W̬h̺̦̟͈̝0͎̻̞ ̲̘̠͉̻͚s͙̜̳̪ṵ̱̥͇͇̮M̞̘̣̻̰ṃ̯̪̬̝0̹̮̹̝̫̟n3̗̖̯̙͚̳̹d̘̼̼̣̰̰͕ ̜̺̗̻m̥̞͔̼ͅE̱͖?͓",
+		Text:       "1l͓͔ͅ ̭͖͇͉͉̳h͚̘͎̣ͅ0p̬̪̭̻͕E 1͕͎̺̲5̩̜̭̙̪̘̗ g̲̠̲̻̪o̰̬̮̤͕̺N̙͕e͖͎̞̫̲̠👹͓̠̳̹̘",
 		Actions:    actions,
 	}}
 }
@@ -507,15 +507,17 @@ func (p *KickerPlugin) CreateEndPollPost() {
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
 			ChannelId: p.channelID,
-			Message:   "Quantität der Wettkämpfer insuffizient!",
-			RootId:    p.rootID,
-			Type:      model.POST_DEFAULT,
+			Message: `
+			W͎͍͕̖R̹̟̰̈́͒͛̊͗Y̸̠̯̣̲̘̞̫̑͛͆ͥ̂́̂Y̳͔͉͎ͦͦ̑ͥ̆͆̍Ỳ̮͔͈̹̓̓̊͠Y̻̽̔͌ͣYYͭ̌ͤ̏ͦ͏̗̹̙̤̥̥̗Y̟͞Y͈̜̳̾͂͆Y̞͍̦͖̠̽̽ͧͬͯ̃̂Y̭ͨYͥ̄̆͛́Y͕͍̯̥̮͓͇Y͕̙̺̫͕̰ͮ́̿ͅŸ̲̬̩̺́̃̉Y̪̜͉̼̪̫ͣͦͯ̒̑ͩ̚?̦̟͚͉̪̐ͬ͟!͌͏͙͔?͈͓͚̤̟͓ͧͯ̾̃!͕̪̲̝͖ͬ͗̉ͥͯͥ͡?͕̥̯̖̠͓ͫͮ?̶̤̩͍̤̲̝̈́͋̍ͅ!̝̱͚̭̫̺̄̇͡!́͊̅̒̃̀",
+			`,
+			RootId: p.rootID,
+			Type:   model.POST_DEFAULT,
 		})
 		p.busy = false
 		return
 	}
 
-	message := "Es nehmen teil: " + JoinPlayerNames(chosenPlayer)
+	message := "F̸͍̻͍͆̽R̪̻͔̼͚̽̾E̗̗̽̈̍ͥE̳ͤ̎͌̅̅̆̑ ̴͍̰̦̓̀ͪ͛̉ͅḿ͖̟̭̘̞3͔͔̞̓̽ͭ͗ͅ: " + JoinPlayerNames(chosenPlayer)
 
 	p.API.CreatePost(&model.Post{
 		UserId:    p.botUserID,
@@ -536,9 +538,11 @@ func (p *KickerPlugin) CheckEnoughPlayer() {
 		p.API.CreatePost(&model.Post{
 			UserId:    p.botUserID,
 			ChannelId: p.channelID,
-			Message:   "Kickerrektrutenanzahl desolat. 15 Minuten bis zum Meltdown.",
-			RootId:    p.rootID,
-			Type:      model.POST_DEFAULT,
+			Message: `
+W̷̭̭̩͇͊ͫ̉͛͌ͦͬ́̕̕̕Rͮͭ͑͡͏̱̬̣͚̪͓̜̠̖̯Y̻̥̳̯͓̘̯͎͈̳̺̜͂̀̒ͧ͢͡Ŷ̨̜̲̝̱͇͕̠̰̰̟͉͙͓͙͔̼̠͇̓͗̃̓̍ͤ̑͋͐̋ͤ͑̄ͮͮ̚͘͢͢͡Ý̸̧̞͍͓͙̥͔̭̫̯̣̗̝̝̉͒͑̅̌́͘͡Y̆̏̾̉̃̾̊̓̎̏̈̇͒̓ͬ͏̥̱̦͓͚͘͜Y̸̠̥̭̳̙̜̖̗͒̀̉̓ͥ͂̋̾ͧ́͆͜Y̨̯̤̫̲̖̝̩ͧͦ͐̏̃ͮ̀̀ͅȲͬ̊̾҉̵̩̹̝̺̥̱͈̖͎Y̓̑̾́̏̆̔҉̴̢̫̟̞̱͇̫͇̥̩̗͙͘͟Ÿ͍̤̙̹̹̞̘̣͈͇̥̠̘̹̰ͬ͊̉̎ͦ͊̂̓ͥ͜͡ͅY̷̸̡̗̤̯̺̻̪̗̦͔̝̺̰̊̿͒ͥ̂͛ͤ̈́̒̊͐͑̀ͦ͆ͫ͋̍͢͞Y̶̨̲̬̼͚̥͖̳͕͕̭͉̊ͮ̐̓̀̏̀̈̿͒̌ͤ̾́̍ͪͧ̂́Y̡̲̺̱̟͓͇̝͖̌ͪ̈ͪ͒̇ͪͧ̌͆̓ͪͬͪ͌̍́̌̕̕͞ͅŸ́ͬ̐ͥ͛ͯ̂ͬ̃ͯ͛̄̀̚͘͏̘͓̖̗̗͔̬̫̞̥͙̼̤̱͕̠̯Y̍̾̀ͤ̐ͧ͐҉̶̧̬̬̥̦̘̼͘͝Y̻̤͉̝̖͊̋̃̍̈̓̽͐̇̔̔̊̔̚̕͞?̴̢̘̙͖̖̙̟̻̟̠̳̯̺̖͈̞͖̘͈͙͋̋ͩͮ̐ͤ̓̆ͥ͆̋ͥ̃͆ͩͧ̚!̶͍̮̥̟̦͙͖̮͉̤̤͚̍ͪ̂̏͛ͤ̐̔́̕?̴̨̤̻͖͎͉̤̬͎͚̞̳̗̳ͦ͋̓͗͊ͭ͗ͫ͂͟͠͞!̷̸̢͍̩̝̬̝̹̣͓͕̝̪̫̘̠̒̏̀̏̿͌ͅ?̳̤̘̱̗͔̻͊̿͂̌̍̓̂̄ͯ͂͂́̇́̚͜?̸̨̲͎͉̺̗͕͈̱͉̫̭͕̘͕̝̃̀͂̎̋͋͒̉ͨͮ̓̏ͯͩ̀͘ͅ!̶̶̢̡̙̻͎̱͔͔̜̈́ͪ̀̀̚ͅ!̙̱̟̦̮̩̆ͯ̅̅̔̿ͥ̀ͯͪ̿̀͘̕͟ͅ
+			`,
+			RootId: p.rootID,
+			Type:   model.POST_DEFAULT,
 		})
 	}
 }
