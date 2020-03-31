@@ -4,8 +4,8 @@ A plugin for [Mattermost](https://mattermost.com/) for kicker matches, creating 
 
 ## Releases
 
-For a quick-start you can directly download the lastest release here:  
-[Release 1.1.1](releases/com.naymspace.mattermost-kicker-1.1.1.tar.gz)
+For a quick-start you can directly download the lastest release here:
+[Release 1.1.2](releases/com.naymspace.mattermost-kicker-1.1.2.tar.gz)
 
 You can also build it yourself:
 
